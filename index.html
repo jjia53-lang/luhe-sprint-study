@@ -704,6 +704,35 @@ function subjectProgress(tasks) {
     return `<div class="summary-row ${subjectStyle[subject][0]}"><div class="summary-name"><b>${subject}</b><span>${done} / ${set.length} 项</span></div>${track(set.length ? 100*done/set.length : 0)}</div>`;
   }).join("")}</div>`);
 }
+function todayCompletionText(today,tasks,wordCheckIn,wordsPlanned) {
+  const todayTasks=tasks.filter(task=>task.date===today);
+  const complete=todayTasks.filter(actual);
+  const minutes=complete.reduce((sum,task)=>sum+(task.actualMinutes??0),wordCheckIn?.minutes??0);
+  const lines=[
+    `潞河冲刺站｜${today} 学习完成情况（北京时间）`,
+    `完成 ${complete.length+Number(Boolean(wordCheckIn))}/${todayTasks.length+Number(wordsPlanned||Boolean(wordCheckIn))} 项，实际学习 ${minutes} 分钟`,
+  ];
+  if(wordCheckIn) lines.push(`• 单词复习 · ${wordCheckIn.minutes} 分钟（已打卡）`);
+  for(const task of complete) {
+    const title=task.title.replace(/\s+/g," ").trim();
+    lines.push(`• ${task.subject}｜${title}${task.actualMinutes!=null?` · ${task.actualMinutes} 分钟`:""}`);
+  }
+  if(!complete.length && !wordCheckIn) lines.push("今天还没有已提交的任务或单词打卡。");
+  return lines.join("\n");
+}
+async function copyTodayCompletion() {
+  const date=model.today;
+  const summary=todayCompletionText(date,model.tasks,vocabOn(date),hasVocabulary(date));
+  try {
+    await navigator.clipboard.writeText(summary);
+    toast("已复制今日完成情况，可以粘贴给家长。");
+  } catch {
+    openModal("今日完成情况",`<p>请选择并复制下面的文字。</p>${field("可复制摘要",`<textarea id="today-completion" readonly rows="8">${esc(summary)}</textarea>`)}`);
+    const report=document.querySelector("#today-completion");
+    report.focus();
+    report.select();
+  }
+}
 function dashboard() {
   const currentWeek = weekTasks(start(model.today));
   const withWords = [...currentWeek,...vocabularyTasks(start(model.today),shift(start(model.today),6))];
@@ -724,7 +753,7 @@ function dashboard() {
   </section>
   ${progressMetrics(currentWeek)}
   <div class="grid"><div class="stack">
-    ${panel("今日任务",todayTasks.length || hasVocabulary(model.today) ? `<div class="task-list">${vocabRow(model.today)}${todayTasks.map(item=>taskRow(item,false)).join("")}</div>` : empty("calendar","今天没有安排","可以休息，或记录今天的校内复习。"),button("看全部计划","navigate",{value:"plan",variant:"plain",glyph:"right"}),todayMinutes?`计划 ${duration(todayMinutes)}`:"")}
+    ${panel("今日任务",todayTasks.length || hasVocabulary(model.today) ? `<div class="task-list">${vocabRow(model.today)}${todayTasks.map(item=>taskRow(item,false)).join("")}</div>` : empty("calendar","今天没有安排","可以休息，或记录今天的校内复习。"),`<div class="actions">${button("复制今日完成情况","copy-today",{glyph:"copy"})}${button("看全部计划","navigate",{value:"plan",variant:"plain",glyph:"right"})}</div>`,todayMinutes?`计划 ${duration(todayMinutes)}`:"")}
     ${panel("接下来",upcoming.length ? `<div class="task-list">${upcoming.map(item=>taskRow(item)).join("")}</div>` : empty("check","没有待开始的任务"))}
     ${overdue.length ? panel(`待补做 · ${overdue.length} 项`,`<div class="task-list">${overdue.slice(0,4).map(item=>taskRow(item)).join("")}</div>`) : ""}
   </div><div class="stack">
@@ -824,7 +853,7 @@ function render() {
   <div class="nav-label">学习工作台</div><nav class="nav" aria-label="学习工作台">
   ${Object.entries(sections).map(([key,[glyph,text]])=>`<button type="button" data-do="navigate" data-value="${key}" ${key===page?'aria-current="page"':""}>${icon(glyph)}${text}</button>`).join("")}</nav>
   <div class="sidebar-bottom">${student() ? `<button class="side-action" type="button" data-do="settings">${icon("settings")} 考试日期设置</button>` : ""}
-  <div class="profile"><div class="avatar">${student()?"学":"家"}</div><div><b>${student()?"学生空间":"家长空间"}</b><span>家庭共享进度</span></div></div></div></aside>
+  <div class="profile"><div class="avatar">${student()?"学":"家"}</div><div><b>${student()?"学生空间":"家长空间"}</b><span>本机学习进度</span></div></div></div></aside>
   <main class="main"><div class="topbar"><div class="crumb">工作台 ${icon("right")} <b>${label}</b></div><div class="top-actions">
   ${button("","refresh",{glyph:"refresh",variant:"icon-only",label:"刷新进度"})}${student() ? button("","settings",{glyph:"settings",variant:"icon-only",label:"考试日期设置"}) : ""}${launch}${model.siteKind==="family" ? button("退出","logout",{variant:"plain"}) : ""}</div></div>${window.sprintOffline ? `<div class="local-banner">${icon("info")}<span>学习版 · 记录和附件保存在当前浏览器，家长视图仅供同设备使用。</span></div>` : ""}${view}</main></div>`;
 }
@@ -1096,6 +1125,7 @@ async function handle(action,id) {
       break;
     }
     case "share": share();break;
+    case "copy-today": await copyTodayCompletion();break;
     case "copy-link": {
       const input=document.querySelector("#share-link");
       try { await navigator.clipboard.writeText(input.value);toast("已复制网站链接。"); }
@@ -1103,7 +1133,7 @@ async function handle(action,id) {
       break;
     }
     case "close": dialog?.close();break;
-    case "refresh": await read();render();toast("共享进度已更新。");break;
+    case "refresh": await read();render();toast("本机进度已刷新。");break;
     case "retry": await boot();break;
   }
 }
