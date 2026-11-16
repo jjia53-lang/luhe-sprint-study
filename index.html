@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>潞河冲刺站</title>
+  <meta name="description" content="查看冲刺计划、交训练证据、记录错题，与家长共享学习进度。">
+  <style>:root {
+  color-scheme:light; --canvas:#f6f7f3; --paper:#fff; --ink:#1c2d26; --muted:#5f7067; --forest:#174e42; --green:#205f50; --lime:#dbefa7; --line:#e2e8e1; --soft:#edf3ee; --orange:#a05432;
+  font-family:"Geist","Inter","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  font-synthesis:none; font-size:15px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink)}
+button,input,select,textarea{font:inherit}
+button,a{-webkit-tap-highlight-color:transparent}
+button{cursor:pointer;color:inherit}
+button:disabled{cursor:wait;opacity:.6}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #7ba79b;outline-offset:3px}
+a{color:var(--green)}
+h1,h2,h3,p{margin:0}
+svg{width:19px;height:19px;flex-shrink:0;vertical-align:middle}
+.initial{min-height:100vh;display:grid;gap:14px;align-content:center;justify-items:center;color:var(--muted)}
+.shell{min-height:100vh;display:grid;grid-template-columns:230px minmax(0,1fr)}
+.sidebar{height:100vh;position:sticky;top:0;display:flex;flex-direction:column;padding:32px 19px 18px;background:#fcfdfb;border-right:1px solid var(--line)}
+.brand{display:flex;gap:11px;align-items:center;padding:0 8px;margin-bottom:45px;font-size:19px;font-weight:750;letter-spacing:-.03em;white-space:nowrap}
+.brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.12em;font-weight:500;margin-top:4px}
+.brand-icon{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:11px;background:var(--forest);color:var(--lime);font-size:25px;flex-shrink:0}
+.brand-icon svg{width:23px;height:23px}
+.nav-label{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.18em;padding:0 12px;margin-bottom:11px}
+.nav{display:grid;gap:5px}
+.nav button,.side-action{width:100%;height:45px;border:0;border-radius:9px;background:transparent;display:flex;align-items:center;gap:11px;padding:0 12px;text-align:left;color:#53665b;font-weight:590;font-size:14px}
+.nav button:hover,.side-action:hover{background:#f0f4ee;color:var(--forest)}
+.nav button[aria-current=page]{background:#e7f0e6;color:var(--forest);font-weight:750}
+.nav button svg,.side-action svg{width:18px;height:18px}
+.sidebar-bottom{margin-top:auto}
+.profile{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding:16px 8px 1px;margin-top:10px}
+.avatar{display:grid;place-items:center;border-radius:50%;width:34px;height:34px;background:#e4eddc;color:var(--forest);font-weight:740;font-size:13px;flex-shrink:0}
+.profile b,.profile span{display:block}
+.profile b{font-size:13px}.profile span{font-size:11px;color:var(--muted);margin-top:4px}
+.main{width:100%;max-width:1480px;padding:29px 42px 50px;margin-inline:auto}
+.topbar{min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px}
+.crumb{font-size:13px;color:var(--muted);display:flex;gap:9px;align-items:center;white-space:nowrap}
+.crumb b{color:var(--ink);font-weight:680}.crumb svg{width:13px;height:13px}
+.top-actions,.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.button{border:1px solid #dce5dc;background:#fff;display:inline-flex;justify-content:center;align-items:center;gap:7px;padding:9px 12px;min-height:36px;border-radius:8px;text-decoration:none;font-size:13px;line-height:1.25;font-weight:670;white-space:nowrap;transition:background .16s, border-color .16s}
+.button:hover{background:#f0f5ef;border-color:#bdcdbf}
+.button svg{height:16px;width:16px}
+.button.primary{background:var(--forest);color:#fff;border-color:var(--forest)}
+.button.primary:hover{background:#226153}
+.button.plain{border-color:transparent;background:none;color:var(--green)}
+.button.plain:hover{background:#e8f0e8}
+.button.danger{color:#9b392e}
+.button.icon-only{padding:0;min-width:36px;width:36px;height:36px}
+.heading-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px}
+.eyebrow{font-size:12px;color:var(--green);font-weight:760;letter-spacing:.13em;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.eyebrow svg{height:15px;width:15px}
+.heading-row h1{font-size:clamp(30px,4vw,45px);font-weight:780;letter-spacing:-.06em;line-height:1.13}
+.heading-row p{color:var(--muted);margin-top:9px;line-height:1.55;font-size:14px}
+.hero{min-height:225px;position:relative;isolation:isolate;overflow:hidden;border-radius:16px;background:#164d41;color:white;display:flex;align-items:center;justify-content:space-between;padding:28px 34px;gap:20px}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 90% 20%,#286f59 0%,transparent 53%),linear-gradient(115deg,#164d41,#174d40)}
+.hero-content{position:relative;z-index:1}
+.hero-date{display:flex;gap:8px;align-items:center;color:#d6e6d4;font-size:12px;font-weight:630}
+.hero-date svg{width:15px;height:15px}
+.hero h2{font-size:clamp(32px,4.5vw,64px);letter-spacing:-.11em;line-height:1;font-weight:730;margin:12px 0 10px;color:#eef6ed}
+.hero h2 strong{font-size:1.38em;font-weight:690;color:#e2f4a8;margin-right:8px;font-variant-numeric:tabular-nums;letter-spacing:-.09em}
+.hero h2 span{font-size:.66em;letter-spacing:-.03em}
+.hero p{color:#d8e8d9;font-size:13px;line-height:1.6;max-width:480px}
+.hero-figure{width:clamp(156px,26vw,320px);aspect-ratio:1.6;align-self:center;position:relative;flex-shrink:0;display:grid;place-items:center;transform:rotate(-13deg);margin-right:10px}
+.hero-figure .ring{position:absolute;border:1px solid #a8c99868;width:85%;height:62%;border-radius:50%}
+.hero-figure .r2{rotate:33deg}.hero-figure .r3{rotate:68deg}.hero-figure .r4{rotate:104deg}.hero-figure .r5{rotate:138deg}
+.hero-figure .spark{transform:rotate(13deg);display:grid;place-items:center;width:72px;height:72px;border-radius:24px;background:#dff1a7;color:#21594b;box-shadow:0 0 56px #c4eaa03b}
+.hero-figure .spark svg{width:42px;height:42px;stroke-width:1.35}
+.hero-figure .dot{position:absolute;width:8px;height:8px;border-radius:50%;background:#d7eea8;left:12%;top:54%}
+.hero-figure .dot.two{left:85%;top:33%;width:5px;height:5px}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:15px 0 20px}
+.metric,.panel{background:var(--paper);border:1px solid var(--line);border-radius:13px}
+.metric{padding:15px 15px 13px;min-height:94px;display:grid;grid-template-columns:37px minmax(0,1fr);gap:10px;align-content:start}
+.metric-icon,.subject-icon{width:35px;height:35px;border-radius:9px;background:#edf3e9;color:var(--forest);display:grid;place-items:center}
+.metric-icon svg,.subject-icon svg{width:18px;height:18px}
+.metric small{color:var(--muted);font-size:12px}
+.metric strong{font-size:24px;line-height:1.2;display:block;letter-spacing:-.07em;font-weight:760;margin-top:2px;font-variant-numeric:tabular-nums}
+.metric strong span{font-weight:620;font-size:12px;letter-spacing:0;color:var(--muted);margin-left:4px}
+.metric .track{grid-column:1/-1;height:4px;margin-top:1px}
+.track{height:6px;background:#ecf0e9;border-radius:20px;overflow:hidden}
+.track i{display:block;height:100%;background:#78a782;border-radius:20px}
+.grid{display:grid;grid-template-columns:minmax(0,1.95fr) minmax(260px,1fr);gap:16px;align-items:start}
+.stack{display:grid;gap:14px;min-width:0}
+.panel{min-width:0;padding:17px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:13px}
+.panel-head h2{font-size:18px;font-weight:750;letter-spacing:-.045em;line-height:1.3}
+.panel-head p{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.task-list{display:grid;margin:0 -2px}
+.task-row{display:grid;grid-template-columns:37px minmax(0,1fr) auto;gap:10px;align-items:center;border-top:1px solid #edf0eb;padding:11px 2px}
+.task-row:first-child{border-top:0}
+.task-body{min-width:0;text-align:left;border:0;background:none;padding:2px 0}
+.task-body b{display:block;font-size:14px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task-body:hover b{color:var(--green);text-decoration:underline;text-underline-offset:3px}
+.task-row small{font-size:11px;display:block;color:var(--muted);margin-top:3px}
+.subject-icon.math{background:#eef0f9;color:#4e5780}
+.subject-icon.english{background:#e8f2e9;color:#246053}
+.subject-icon.other{background:#f0eee7;color:#786245}
+.row-end{display:flex;gap:5px;align-items:center;white-space:nowrap}
+.row-end .button{min-height:30px;padding:6px 8px;font-size:12px}
+.pill{border-radius:30px;padding:4px 8px;background:#eef1ed;color:#4e6154;font-size:11px;line-height:1.3;font-weight:650;white-space:nowrap;display:inline-flex;align-items:center}
+.pill.good{background:#e5f1e4;color:#246246}.pill.wait{background:#faf0dd;color:#79561f}.pill.late{background:#f7eae7;color:#8b4036}
+.focus{background:#eef4e8;border-color:#dfeadd}
+.focus-title{display:flex;gap:8px;align-items:center;font-weight:750;color:var(--forest);margin-bottom:8px}
+.focus-title svg{width:17px;height:17px}
+.focus h3{font-size:20px;letter-spacing:-.04em;margin-bottom:6px}
+.focus p,.empty p{font-size:13px;color:var(--muted);line-height:1.6}
+.subject-summary{display:grid;gap:12px}
+.subject-summary .summary-name{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;font-size:13px}
+.subject-summary .summary-name span:last-child{color:var(--muted);font-size:12px}
+.summary-name b{font-weight:700}.summary-row.english .track i{background:#607cb3}
+.week-control{display:flex;gap:6px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.week-control b{font-size:14px;padding:0 4px}
+.week-control .button.icon-only{height:32px;width:32px;min-width:32px;min-height:32px}
+.week-days{display:grid;gap:12px}
+.day-label{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:5px;display:flex;align-items:center;gap:9px}
+.day-label h3{font-size:15px;margin-right:auto}.day-label small{color:var(--muted);font-size:12px}
+.week-stats{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}
+.info{display:flex;gap:9px;align-items:flex-start;background:#edf3ea;border:1px solid #dfe9dd;border-radius:10px;padding:12px;color:#35584b;font-size:13px;line-height:1.6;margin:11px 0}
+.info svg{height:17px;width:17px;margin-top:1px}
+.empty{padding:25px 11px 20px;text-align:center;color:var(--muted)}
+.empty svg{width:23px;height:23px;color:#5b7c67;margin-bottom:8px}
+.empty b{display:block;margin-bottom:4px;color:var(--ink);font-size:14px}
+.record{padding:14px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.record .meta,.meta{display:flex;flex-wrap:wrap;gap:7px;align-items:center;color:var(--muted);font-size:12px}
+.record .meta{margin-bottom:7px}
+.record h3{font-size:16px;margin-bottom:6px}
+.record p,.review p{font-size:14px;line-height:1.65;overflow-wrap:anywhere;white-space:pre-wrap}
+.record p+p{margin-top:8px}.record .actions{margin-top:12px}
+.record strong{color:#234f42}.review{border-left:2px solid #a9c3ac;padding:7px 10px;margin-top:9px;background:#f7faf6;border-radius:0 7px 7px 0}
+.review .meta{margin-bottom:5px}
+.filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.filters button[aria-pressed=true]{background:#e6efe5;border-color:#d7e5d7;color:var(--forest)}
+#notifications{position:fixed;z-index:30;right:18px;bottom:18px;display:grid;gap:7px;pointer-events:none}
+.toast{padding:11px 15px;border-radius:8px;background:#214d41;color:white;max-width:75vw;box-shadow:0 3px 16px #162b2538;font-size:13px}
+.toast.error{background:#863c34}
+dialog{width:min(550px,calc(100% - 24px));margin:auto;border:1px solid #dbe5db;border-radius:15px;box-shadow:0 22px 100px #183e3350;color:var(--ink);padding:0;background:white;max-height:calc(100dvh - 24px)}
+dialog::backdrop{background:#1d332d70}
+.modal-head{position:sticky;top:0;z-index:1;background:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 17px;border-bottom:1px solid var(--line)}
+.modal-head h2{font-size:20px;letter-spacing:-.04em}
+.modal-body{padding:17px;display:grid;gap:13px}
+.modal-body>p{line-height:1.6;font-size:14px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}
+.fields.three{grid-template-columns:1fr 1fr 1fr}
+.field{display:grid;gap:6px;min-width:0}
+.field>span{font-size:13px;font-weight:680}
+.field input:not([type=checkbox]),.field select,.field textarea{width:100%;min-height:40px;padding:9px 10px;border:1px solid #d7e2d7;border-radius:8px;color:var(--ink);background:#fbfdf9}
+.field textarea{resize:vertical;min-height:80px}
+.check{font-size:13px;display:flex;align-items:center;gap:7px}
+.hint{font-size:12px;color:var(--muted);line-height:1.55}
+.modal-foot{padding:13px 17px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:white}
+.form-error{font-size:13px;color:#8b4036;line-height:1.5}.form-error:empty{display:none}
+.file-list{display:grid;gap:7px}
+.file-link{display:flex;gap:8px;align-items:center;overflow-wrap:anywhere;white-space:normal;justify-content:flex-start;max-width:100%}
+@media(max-width:1100px){.shell{grid-template-columns:190px minmax(0,1fr)}.main{padding:25px 28px 45px}.sidebar{padding-inline:12px}.grid{grid-template-columns:minmax(0,1.55fr) minmax(235px,1fr)}}
+@media(max-width:880px){.shell{grid-template-columns:154px minmax(0,1fr)}.brand{font-size:15px;padding-inline:4px;gap:7px}.brand-icon{width:33px;height:33px}.brand small{font-size:9px;letter-spacing:.06em}.sidebar{padding:24px 8px 14px}.main{padding-inline:20px}.grid{grid-template-columns:1fr}.grid>.stack:last-child{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{min-height:195px}}
+@media(max-width:620px){.shell{display:block}.sidebar{height:auto;position:static;padding:13px 12px 9px;border-right:0;border-bottom:1px solid var(--line)}.brand{margin-bottom:9px;font-size:16px}.brand small,.nav-label,.sidebar-bottom,.crumb{display:none}.nav{display:flex;overflow-x:auto;gap:3px}.nav button{width:auto;flex-shrink:0;white-space:nowrap;height:35px;padding:0 7px;gap:4px;font-size:12px}.nav button svg{width:15px;height:15px}.main{padding:15px 12px 34px}.topbar{justify-content:flex-end;margin-bottom:12px}.heading-row{margin-bottom:13px;align-items:flex-start}.heading-row h1{font-size:31px}.heading-row p{font-size:12px}.hero{padding:20px 16px;min-height:160px;gap:10px}.hero-figure{width:99px;margin-right:1px}.hero-figure .spark{width:40px;height:40px;border-radius:13px}.hero-figure .spark svg{width:26px;height:26px}.hero h2{font-size:39px}.hero p{font-size:12px}.metrics{gap:6px;margin:9px 0 14px}.metric{padding:8px;grid-template-columns:1fr;gap:2px;min-height:72px}.metric-icon{display:none}.metric strong{font-size:21px}.metric small{font-size:11px}.grid>.stack:last-child{grid-template-columns:1fr}.panel{padding:12px}.task-row{grid-template-columns:31px minmax(0,1fr) auto;gap:7px}.subject-icon{width:31px;height:31px}.row-end{gap:4px}.pill{font-size:10px;padding:3px 6px}.task-body b{font-size:13px}.fields.three{grid-template-columns:1fr 1fr}.heading-row .actions .button{font-size:11px;padding:7px;min-height:32px}}
+.local-banner{display:flex;align-items:center;gap:8px;color:#506257;font-size:12px;margin:-9px 0 17px;padding:8px 10px;background:#edf1e8;border-radius:7px}
+.local-banner svg{width:15px;height:15px}
+.vocab-date{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:4px 7px;color:var(--green);background:#fff}
+.vocab-date input{font-size:13px;border:0;background:none;min-width:0;max-width:125px}
+.vocab-date svg{width:16px;height:16px}
+.word-form{display:grid;gap:8px;margin-bottom:9px}
+.word-meta{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 12px}
+.word-item details summary{cursor:pointer;font-size:16px;font-weight:710}
+.word-item details summary .pill{margin-left:7px}
+.word-item details p{margin-top:8px}
+.word-item details .meta{margin-top:8px}
+.test-card{display:grid;gap:12px;border-radius:10px;padding:16px;background:#f2f6ed}
+.test-card h3{font-size:28px;color:var(--forest);overflow-wrap:anywhere}
+.test-card p{font-size:14px;color:var(--muted);line-height:1.55}
+</style>
+  <script type="module">
+const firstDay = "2026-11-16";
+const defaultExam = "2026-12-31";
+
+function shiftDate(date, days) {
+  const value = new Date(date + "T12:00:00Z");
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function weekStart(date) {
+  return shiftDate(date, -((new Date(date + "T12:00:00Z").getUTCDay() + 6) % 7));
+}
+
+function beijingToday() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(new Date());
+  return ["year", "month", "day"].map(type => parts.find(p => p.type === type)?.value).join("-");
+}
+
+const weekdays = [
+  [ ["数学",35,"专题例题与变式"],["英语",35,"限时听力与错因"],["其他",35,"校内复习与订正"] ],
+  [ ["数学",45,"校内大题独立重做"],["英语",35,"陌生阅读与定位"],["其他",25,"校内薄弱项巩固"] ],
+  [ ["数学",45,"最后大题拆问训练"],["英语",35,"听力回听与复述"],["其他",25,"课内错题回做"] ],
+  [ ["数学",40,"换条件做变式"],["英语",40,"模拟面试与追问"],["其他",25,"校内当周内容复盘"] ],
+  [ ["数学",35,"本周关键小问复测"],["英语",40,"英语专项小测"],["其他",30,"周末训练准备"] ],
+  [ ["数学",80,"限时数学混合卷"],["英语",60,"综合听力与阅读"],["数学",55,"订正与末问迁移"],["英语",50,"面试模拟与录音"],["其他",35,"校内补弱与整理"] ],
+  [ ["数学",75,"独立综合题复测"],["英语",70,"听力与口语模拟"],["数学",55,"深度复盘和错题整理"],["英语",45,"陌生阅读或短写作"],["其他",35,"周总结与下周安排"] ],
+];
+
+const studySteps = [
+  ["做 1 道例题和 2 道变式，写出可以复用的方法。","限时做一组听力，再重听自己漏听的句子。","核对作业中的两处易错步骤。"],
+  ["先不看答案重做，给无法继续的那一步做标记。","限时做一篇阅读，为错题划出原文证据。","选一项需要补牢的课内内容，做一道新题检验。"],
+  ["从第一问开始逐问练习，写清每一步用到的条件。","选一段听力，听后不看稿说出主旨和两个细节。","隔天重做两道校内错题。"],
+  ["改变数字或条件，比较原解法在哪一步需要调整。","录两段回答，各加一个具体例子，再接一道追问。","给本周的课内复习列出三个考点。"],
+  ["不翻笔记做两道本周常错的小问。","做一组限时练习，按理解、词汇和时间归因。","准备周末用的卷子和材料，先清理未完成的课内任务。"],
+  ["按卷面限时做基础、中档和综合题。","分时完成一组听力和一篇陌生阅读。","重做两个得分步骤，再做一道只改一个条件的变式。","请家人连续问三题，回听一段录音并重答。","挑一个课内薄弱点做专项订正。"],
+  ["换题独立完成，最后给自己留几分钟检查。","分别计时做听力和口语，记录卡住的地方。","对照评分步骤，写出两条下次检查动作。","完成一篇限时阅读或一段短写作，集中订正一类错误。","统计本周完成时间和主要失分，给下周确定两个重点。"],
+];
+
+const trainingPhases = [
+  {math:"拿近两张校内卷定位最后大题失分。记下卡在第几问、哪个条件没有用上。",english:"先做陌生材料建立基线。口语用 45–60 秒讲清英语提分时具体改了什么。"},
+  {math:"优先补上一周扣分最多的题型。看过一个提示后合上解析，完整写出得分步骤。",english:"听力抓转折和同义替换。口语用一个真实例子支撑回答，再接一个追问。"},
+  {math:"独立做没见过的变式。把前一问的结论带入末问，并在隔天回做一次。",english:"阅读逐题找原文证据。听力复述信息，面试加练一个临场追问。"},
+  {math:"继续保住基础和中档题，小步练末问。使用校内材料复盘这周失分。",english:"优先用校内听说材料。12 月 13 日参加机考的话，实际考试与校内复盘可以计入本项。"},
+  {math:"按确认的考试范围限时，先做会做的题，再回头处理末问。保留答题过程。",english:"按确认的题型练听力和面试。请家人连续提问，回放后挑一个可改进的点。"},
+  {math:"根据首轮模拟选两处最容易追回的失分。换一道题确认方法能独立用出来。",english:"复测最常错的听力题型。用三个真实经历练随机提问，缩短含糊的回答。"},
+  {math:"回做高频错题和得分小问，核对检查顺序。把晚间任务提前，优先保证睡眠。",english:"回听熟悉材料，过一遍面试的真实例子。正式考试当天可将校内或实考时段计入计划。"},
+];
+
+function dayIndex(date) {
+  return (new Date(date+"T12:00:00Z").getUTCDay()+6)%7;
+}
+
+function vocabularyMinutes() {
+  return 40;
+}
+
+function initialTasks(end=defaultExam,version=4) {
+  const result=[];
+  for(let date=firstDay;date<=end;date=shiftDate(date,1)) {
+    const period=Math.floor((Date.parse(date)-Date.parse(firstDay))/604800000);
+    const phase=trainingPhases[Math.min(period,trainingPhases.length-1)];
+    const weekday=dayIndex(date);
+    const reductions=weekday<5 ? [10,10,5] : [5,5,5,5,0];
+    weekdays[weekday].forEach(([subject,baseMinutes,title],index)=>{
+      const minutes=version<4?baseMinutes:baseMinutes-reductions[index];
+      const phaseNote=subject==="数学" ? phase.math : subject==="英语" ? phase.english : "校内同技能任务可以计入这一段。";
+      const detail=studySteps[weekday][index]+" "+phaseNote;
+      result.push({id:`daily-${date}-${index}`,date,subject,title,minutes,detail});
+    });
+  }
+  return result;
+}
+
+function planUpgrade(existing,examDate) {
+  const old=new Map(legacyTasks().map(task=>[task.id,task]));
+  for (const task of legacyAddedTasks()) old.set("supplement-"+task.date,task);
+  const remove=existing.filter(task=>{
+    const entry=old.get(task.id);
+    return task.status==="planned" && entry && ["date","subject","title","detail","minutes"].every(key=>entry[key]===task[key]);
+  }).map(task=>task.id);
+  const removed=new Set(remove);
+  const reserved=new Map();
+  for (const task of existing) {
+    if(!removed.has(task.id)) reserved.set(task.date,(reserved.get(task.date)??0)+task.minutes);
+  }
+  const insert=[];
+  const end=examDate<defaultExam?examDate:defaultExam;
+  for(const task of initialTasks(end)) {
+    const target=dayIndex(task.date)<5?120:300;
+    const remaining=target-vocabularyMinutes()-(reserved.get(task.date)??0);
+    if(remaining<=0) continue;
+    const minutes=Math.min(remaining,task.minutes);
+    insert.push({...task,minutes});
+    reserved.set(task.date,(reserved.get(task.date)??0)+minutes);
+  }
+  return {remove,insert};
+}
+
+function vocabularyTimeUpgrade(existing) {
+  const previous=new Map(initialTasks(defaultExam,3).map(task=>[task.id,task]));
+  const next=new Map(initialTasks().map(task=>[task.id,task.minutes]));
+  return existing.filter(task=>{
+    const old=previous.get(task.id);
+    return task.status==="planned" && old && next.get(task.id)!==task.minutes
+      && ["date","subject","title","detail","minutes"].every(key=>old[key]===task[key]);
+  }).map(task=>({...previous.get(task.id),nextMinutes:next.get(task.id)}));
+}
+
+// Version 2 defaults used only to identify untouched tasks when upgrading.
+const legacyRoutine = [
+  [0,"英语","听力限时练习",20,"完成一组听力。记录错因：词没听出来、漏听转折或没识别同义替换。"],
+  [2,"数学","复盘校内最后大题",20,"独立重做一道综合题。写下从第几问、哪一步开始卡住。"],
+  [3,"英语","面试回答与追问",20,"录音回答两题，每题 45–60 秒。给每个回答补一个真实例子，再回答一句英文追问。"],
+  [5,"数学","混合题与综合题",60,"先限时做基础和中档题，再拆一道综合题。看一处关键提示后，合上解析写完整推导。"],
+  [5,"英语","听力与陌生阅读",45,"听力 20 分钟，阅读 25 分钟。给阅读错题找到原文支持句。"],
+  [6,"数学","独立完成同类变式",45,"换条件做一道新题，检查是否能独立找到突破口，写出前几问的得分步骤。"],
+  [6,"英语","模拟面试与复盘",60,"听力 20 分钟，模拟面试和复盘 25 分钟，回顾本周错题 15 分钟。"],
+  [1,"数学","回做一道课内错题",10,"从当天作业或上次周测挑一道错题，独立写出关键一步。"],
+  [4,"英语","回听一句并跟读",10,"挑一段本周听力中漏掉的句子，回听、跟读，再用自己的话说出句意。"],
+];
+
+function legacyTasks() {
+  const weeks = [
+    legacyRoutine.map(item => item[2] === "复盘校内最后大题"
+      ? [2,"数学","定位最后大题的卡点",20,"拿最近两张数学卷，标出最后大题每一问的得分。重做其中一道，记下卡住的具体步骤。"]
+      : item[2] === "面试回答与追问"
+        ? [3,"英语","录下第一段面试回答",20,"用 45–60 秒讲清楚英语从七十多分提升到 87 时，你改变了什么做法。重听一次，加上一个真实例子。"]
+        : item),
+    legacyRoutine,
+    legacyRoutine,
+    [
+      [0,"英语","校内听说机考模拟",20,"用学校发的材料按机考规则完成一组练习，回顾本次漏听和口语卡顿。"],
+      [2,"数学","综合题短练",15,"重做一个最近反复失分的综合题小问。"],
+      [3,"英语","回听机考错题",15,"回听模拟错题并练口语表达，优先解决本周反复出现的听说问题。"],
+      [5,"数学","大题错题回做",25,"只复习已经练过的方法。"],
+      [5,"英语","机考前走一遍流程",15,"用学校材料复习操作和答题流程。"],
+      [1,"数学","校内错题回做",5,"从校内作业选一道，写出原来卡住的那一步。"],
+      [4,"英语","听说关键句复盘",5,"挑两句容易漏听的句子，听一次并跟读。"],
+      [6,"英语","机考简短复盘",5,"记下一处答得顺或容易卡壳的环节。"],
+    ],
+    [
+      ...legacyRoutine.slice(0,3),
+      [5,"数学","第一次限时数学模拟",90,"用中文作答。以学校通知为准，优先完成会做的题，再回头处理综合题末问。90 分钟为预排，可编辑。"],
+      [5,"英语","听力后查错因",40,"完成一组听力，记录正确率和最常见的漏听原因。"],
+      [6,"数学","复盘第一次模拟",45,"写下最值回收的两处失分，各选一道变式复练。"],
+      [6,"英语","第一次完整英语模拟",95,"用确认的题型模拟听力和面试，有笔试内容就同步加入。请家人连续提问，并记录一项可改进的口语表现。"],
+      ...legacyRoutine.slice(7),
+    ],
+    [
+      ...legacyRoutine.slice(0,3),
+      [5,"数学","按失分点做第二次模拟",60,"按学校确认的时间调整任务。记录前几问拿分情况和最常见的步骤失误。"],
+      [5,"英语","限时听力与薄弱题型",45,"重点复测第一次模拟中最常错的听力题型；如果还有笔试，按学校通知补练。"],
+      [6,"数学","复测两道易错变式",45,"独立完成前一阶段错得最多的两个题型，写清每一步的依据。"],
+      [6,"英语","面试追问与考前复盘",60,"用三个真实经历练随机追问，回听录音，修正回答里最含糊的一处。"],
+      ...legacyRoutine.slice(7),
+    ],
+    [
+      [0,"数学","考前回做高频错题",25,"选两道最容易重复犯错的题，只练卡住的步骤和检查。"],
+      [1,"英语","听力错因与口语例子",25,"回听此前错题，用一个真实例子回答一题面试问题。"],
+      [2,"数学","考前短复盘",20,"过一遍常用步骤和答题顺序。考期确定后把这项移到考前一天。"],
+      [3,"英语","口语热身",5,"低声说一遍准备过的真实例子，提醒自己先回答问题，再补细节。"],
+    ],
+  ];
+  return weeks.flatMap((list, week) => list.map(([day, subject, title, minutes, detail], index) => ({
+    id: `plan-${week}-${index}`, date: shiftDate(firstDay, week * 7 + day), subject, title, minutes, detail
+  })));
+}
+
+function legacyAddedTasks() {
+  return legacyTasks().filter(task => {
+    const weekday = new Date(task.date+"T12:00:00Z").getUTCDay();
+    return weekday === 2 || weekday === 5 || task.date === "2026-12-13" || task.date === "2026-12-31";
+  });
+}
+
+function parseUnfamiliarWords(raw) {
+  if(typeof raw!=="string" || raw.length>8000) return null;
+  const items=raw.split(/[\n,，;；、]+/).map(value=>value.trim()).filter(Boolean);
+  if(!items.length || items.length>60 || items.some(value=>value.length>100 || !/[A-Za-z]/.test(value))) return null;
+  const unique=new Map();
+  for(const value of items) {
+    const word=value.normalize("NFKC").replace(/\s+/g," ");
+    if(word.length>100) return null;
+    const key=word.toLowerCase().replace(/[’‘]/g,"'");
+    if(key.length>100) return null;
+    if(!unique.has(key)) unique.set(key,{key,word});
+  }
+  return [...unique.values()];
+}
+
+const requestValue = request => new Promise((resolve,reject)=>{
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+});
+const transactionDone = tx => new Promise((resolve,reject)=>{
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error ?? new Error("修改未保存。"));tx.onerror=()=>reject(tx.error);
+});
+let role="student";
+let opening;
+function database() {
+  if (!opening) {
+    opening=new Promise((resolve,reject)=>{
+      let req;
+      try { req=indexedDB.open("luhe-sprint-local-2026",1); }
+      catch { reject(new Error("此浏览器无法保存本机记录，请用 Chrome 或 Edge 打开 HTML 文件。"));return; }
+      req.onupgradeneeded=()=>{
+        req.result.createObjectStore("state");
+        req.result.createObjectStore("evidence");
+      };
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(new Error("此浏览器无法保存本机记录，请用 Chrome 或 Edge 打开 HTML 文件。"));
+    });
+  }
+  return opening;
+}
+function defaultState() {
+  return {
+    examDate:defaultExam,monthlyDate:null,examConfirmed:false,planVersion:4,
+    tasks:initialTasks().map(task=>({...task,status:"planned"})),
+    attachments:[],logs:[],mistakes:[],reviews:[],vocabulary:[],words:[],
+  };
+}
+async function withState(update) {
+  const db=await database();
+  const tx=db.transaction(["state","evidence"],update ? "readwrite":"readonly");
+  const done=transactionDone(tx);
+  const storage=tx.objectStore("state");
+  try {
+    const state=await requestValue(storage.get("family")) ?? defaultState();
+    state.vocabulary ??= [];
+    state.words ??= [];
+    if((state.planVersion??1)<3) {
+      const {remove,insert}=planUpgrade(state.tasks,state.examDate);
+      const removed=new Set(remove);
+      state.tasks=state.tasks.filter(task=>!removed.has(task.id)).concat(insert.map(task=>({...task,status:"planned"})));
+      state.planVersion=4;
+    } else if(state.planVersion===3) {
+      const changes=new Map(vocabularyTimeUpgrade(state.tasks).map(task=>[task.id,task.nextMinutes]));
+      for(const task of state.tasks) {
+        if(changes.has(task.id)) task.minutes=changes.get(task.id);
+      }
+      state.planVersion=4;
+    }
+    if(update) {
+      update(state,tx.objectStore("evidence"));
+      storage.put(state,"family");
+    }
+    await done;
+    return state;
+  } catch(error) {
+    try {tx.abort();} catch {}
+    await done.catch(()=>{});
+    throw error;
+  }
+}
+function saveRecord(rows,id,data) {
+  if(!id) {rows.unshift({...data,id:crypto.randomUUID()});return;}
+  const index=rows.findIndex(item=>item.id===id);
+  if(index<0) throw new Error("该记录已删除，请刷新查看。");
+  rows[index]={...rows[index],...data};
+}
+function removeRecord(rows,id) {
+  const index=rows.findIndex(item=>item.id===id);
+  if(index<0) throw new Error("该记录已删除，请刷新查看。");
+  rows.splice(index,1);
+}
+function validateNumber(value) {
+  if(!Number.isInteger(value) || value<1 || value>600) throw new Error("请填写 1 到 600 分钟。");
+  return value;
+}
+function checkedText(value) {
+  const result=String(value ?? "").trim();
+  if (!result) throw new Error("请填写必填内容。");
+  return result;
+}
+function localSubmit(state,store,form) {
+  if(role!=="student") throw new Error("只有学生可以提交训练。");
+  const task=state.tasks.find(item=>item.id===form.get("id"));
+  if (!task) throw new Error("找不到这项任务。");
+  if ((task.status==="submitted") !== (form.get("mode")==="update")) throw new Error("任务状态已变化，请刷新。");
+  const files=form.getAll("files").filter(item=>item instanceof File && item.size>0);
+  const existing=state.attachments.filter(item=>item.taskId===task.id).length;
+  if(files.length+existing>3 || files.some(item=>
+    item.size>8*1024*1024 || !/^(image\/(jpeg|png|webp|gif|heic|heif)|application\/pdf|audio\/[a-z0-9.+-]+)$/i.test(item.type)
+  )) throw new Error("最多保存 3 个图片、PDF 或音频，每个不超过 8 MB。");
+  task.notes=checkedText(form.get("notes"));
+  task.actualMinutes=validateNumber(Number(form.get("actualMinutes")));
+  task.status="submitted";
+  task.submittedAt=new Date().toISOString();
+  for(const file of files) {
+    const id=crypto.randomUUID();
+    store.put(file,id);
+    state.attachments.push({id,taskId:task.id,name:file.name,size:file.size,type:file.type});
+  }
+}
+window.sprintOffline={
+  changeRole(){role=role==="student"?"parent":"student";},
+  async read() {
+    const state=await withState();
+    state.tasks.sort((a,b)=>a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    state.logs.sort((a,b)=>b.date.localeCompare(a.date));
+    state.mistakes.sort((a,b)=>b.date.localeCompare(a.date));
+    return {...state,role,today:beijingToday()};
+  },
+  async write(payload) {
+    await withState((state,store)=>{
+      if(payload instanceof FormData) {localSubmit(state,store,payload);return;}
+      const {action,id,data}=payload;
+      if(action==="review") {
+        if(role!=="parent") throw new Error("请从家长预览提交评价。");
+        if(data.taskId && state.tasks.find(item=>item.id===data.taskId)?.status!=="submitted") throw new Error("任务尚未提交。");
+        state.reviews.unshift({...data,comment:checkedText(data.comment),id:crypto.randomUUID(),author:"家长（本机）",createdAt:new Date().toISOString()});
+        return;
+      }
+      if(role!=="student") throw new Error("只有学生可以修改学习记录。");
+      switch(action) {
+        case "task.save": saveRecord(state.tasks,id,{...(id?{}:{status:"planned"}),...data,title:checkedText(data.title)});break;
+        case "task.remove": {
+          if(state.tasks.find(item=>item.id===id)?.status!=="planned") throw new Error("只有待完成的任务可以删除。");
+          removeRecord(state.tasks,id);break;
+        }
+        case "log.save": saveRecord(state.logs,id,{...data,content:checkedText(data.content)});break;
+        case "log.remove": removeRecord(state.logs,id);break;
+        case "mistake.save": saveRecord(state.mistakes,id,{...data,title:checkedText(data.title),cause:checkedText(data.cause),correction:checkedText(data.correction)});break;
+        case "mistake.remove": removeRecord(state.mistakes,id);break;
+        case "vocab.save": {
+          if(data.date<firstDay || data.date>beijingToday()) throw new Error("请检查日期。");
+          const entry={...data,minutes:validateNumber(data.minutes),completedAt:new Date().toISOString()};
+          const old=state.vocabulary.findIndex(item=>item.date===data.date);
+          if(old<0) state.vocabulary.unshift(entry);
+          else state.vocabulary[old]={...state.vocabulary[old],...entry};
+          break;
+        }
+        case "word.add": {
+          const words=parseUnfamiliarWords(data.words);
+          if(!words) throw new Error("请输入英文单词或短语，最多 60 条，用换行或逗号分开。");
+          if(data.date<firstDay || data.date>beijingToday()) throw new Error("请检查日期。");
+          for (const word of words) {
+            const found=state.words.find(item=>item.key===word.key);
+            if(found) {
+              if(data.date>found.lastSeen) found.lastSeen=data.date;
+              if(data.date<found.firstSeen) found.firstSeen=data.date;
+              found.known=0;
+            } else state.words.push({...word,firstSeen:data.date,lastSeen:data.date,attempts:0,note:"",known:0});
+          }
+          break;
+        }
+        case "word.note":
+        case "word.test":
+        case "word.remove": {
+          const index=state.words.findIndex(item=>item.key===data.key);
+          if(index<0) throw new Error("单词已删除，请刷新查看。");
+          const word=state.words[index];
+          if(action==="word.remove") state.words.splice(index,1);
+          if(action==="word.note") word.note=data.note;
+          if(action==="word.test") {
+            word.attempts++;
+            word.known=data.known?1:0;
+            word.testedAt=new Date().toISOString();
+          }
+          break;
+        }
+        case "settings": Object.assign(state,data);break;
+        default: throw new Error("未知操作。");
+      }
+    });
+  },
+  async download(id) {
+    const db=await database();
+    const file=await requestValue(db.transaction("evidence").objectStore("evidence").get(id));
+    if(!file) throw new Error("找不到这份证据。");
+    const url=URL.createObjectURL(file);
+    const link=document.createElement("a");
+    link.href=url;link.download=file.name;link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  },
+};
+
+const paths = {
+  rise: '<path d="m3 17 6-7 4 4 7-9M14 5h6v6"/>', home: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18M10 10v10"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18m-13 4h2m4 0h2m-8 3h2"/>',
+  journal:'<path d="M5 3h13a2 2 0 0 1 2 2v15H6a3 3 0 0 1 0-6h14M5 3a2 2 0 0 0-2 2v12m6-9h7"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  people:'<circle cx="9" cy="7" r="3"/><path d="M3 19v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2m2-15a3 3 0 0 1 0 6m4 9v-2a4 4 0 0 0-3-4"/>',
+  down:'<path d="m6 9 6 6 6-6"/>', right:'<path d="m9 6 6 6-6 6"/>', left:'<path d="m15 6-6 6 6 6"/>',
+  more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  add:'<path d="M12 5v14M5 12h14"/>', timer:'<circle cx="12" cy="13" r="8"/><path d="M10 2h4m-2 8v4l2 2"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  talk:'<path d="M21 11a7 7 0 0 1-7 7H8l-5 3v-6a7 7 0 0 1 6-11h5a7 7 0 0 1 7 7Z"/><path d="M8 10h8m-8 4h5"/>',
+  words:'<path d="M4 5h5a3 3 0 0 1 3 3v13a4 4 0 0 0-4-3H4zm16 0h-5a3 3 0 0 0-3 3m8-3v13h-4a4 4 0 0 0-4 3"/>',
+  math:'<path d="M3 17h18L15 5 3 17Zm6 0v-3h3"/>',
+  english:'<path d="m4 18 6-13 6 13M6 14h8m7-3v7m-2-1c-1 0-2-1-2-2s1-2 2-2h2"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="m10 3-.7 3-2 .9-2.6-1-2 3.5L5 11v2l-2.3 1.7 2 3.5 2.6-1 2 .9.7 3h4l.7-3 2-.9 2.6 1 2-3.5L19 13v-2l2.3-1.7-2-3.5-2.6 1-2-.9L14 3z"/>',
+  refresh:'<path d="M20 7v5h-5m5 0a8 8 0 1 0-2 6"/>',
+  clip:'<path d="m8 13 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 1 1-7-7l8-8a6 6 0 0 1 8 8l-8 8"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>',
+  close:'<path d="m6 6 12 12M18 6 6 18"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M15 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"/>',
+  edit:'<path d="m12 19 7-7m-9 9H4v-6L16 3l5 5L10 21z"/>',
+};
+const icon = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] ?? paths.info}</svg>`;
+const esc = (value) => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char]);
+const dateValue = date => new Date(date + "T12:00:00Z");
+function shift(date, days) {
+  const value = dateValue(date); value.setUTCDate(value.getUTCDate() + days); return value.toISOString().slice(0,10);
+}
+const start = date => shift(date, -((dateValue(date).getUTCDay() + 6) % 7));
+const gap = (from,to) => Math.round((dateValue(to) - dateValue(from)) / 86400000);
+const fmt = date => `${Number(date.slice(5,7))} 月 ${Number(date.slice(8))} 日`;
+const weekday = date => "周" + "日一二三四五六"[dateValue(date).getUTCDay()];
+const weekName = monday => `${fmt(monday)} – ${fmt(shift(monday,6))}`;
+const time = value => new Intl.DateTimeFormat("zh-CN",{timeZone:"Asia/Shanghai",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(value));
+const duration = minutes => minutes >= 60 ? `${Math.floor(minutes/60)} 小时${minutes % 60 ? ` ${minutes%60} 分钟` : ""}` : `${minutes} 分钟`;
+const subjectStyle = {"数学":["math","math"], "英语":["english","english"], "其他":["other","journal"]};
+const phases = [
+  ["定位失分","找准数学大题卡住的那一步，完成一组陌生英语听力。"],
+  ["首次专项","数学练反复失分的题型。英语练听力和有细节的面试回答。"],
+  ["变式巩固","隔天独立做一道变式，面试多练一个英文追问。"],
+  ["听说机考周","12 月 13 日前，优先做学校的听说机考练习。"],
+  ["第一次模拟","限时做中文数学，模拟英语听力和面试。按学校通知调整题型与时长。"],
+  ["冲刺补漏","根据模拟结果，集中处理最影响得分的两个问题。"],
+  ["考前短练","回看高频错题、听力错因和面试例子。"],
+];
+const sections = {
+  home:["home","学习总览"], plan:["calendar","学习计划"], vocab:["words","单词打卡"], logs:["journal","学习日志"],
+  mistakes:["target","我的错题"], reviews:["talk","家长反馈"],
+};
+const root = document.querySelector("#sprint-app");
+const modalRoot = document.querySelector("#modal-root");
+function hideFamilyLink() {
+  if (new URLSearchParams(location.hash.slice(1)).has("access")) {
+    history.replaceState(history.state,"",location.pathname+location.search);
+  }
+}
+if (!window.sprintOffline) {
+  hideFamilyLink();
+  window.addEventListener("hashchange",hideFamilyLink);
+}
+let model, page = "home", monday, vocabDate, vocabFilter = "待复习", testRound, mistakeFilter = "全部", dialog, opener;
+const student = () => model.role === "student";
+
+function button(text, action, {variant = "", glyph = "", value = "", label = ""} = {}) {
+  return `<button type="button" class="button ${variant}" data-do="${action}" data-value="${esc(value)}"${label ? ` aria-label="${esc(label)}" title="${esc(label)}"` : ""}>${glyph ? icon(glyph) : ""}${esc(text)}</button>`;
+}
+const track = percent => `<div class="track" aria-hidden="true"><i style="width:${Math.max(0,Math.min(100,percent))}%"></i></div>`;
+const chip = (label,type="") => `<span class="pill ${type}">${esc(label)}</span>`;
+function empty(glyph,title,note="") {
+  return `<div class="empty">${icon(glyph)}<b>${esc(title)}</b>${note ? `<p>${esc(note)}</p>` : ""}</div>`;
+}
+function heading(title, note, actions="", kicker="") {
+  return `<div class="heading-row"><div>${kicker ? `<div class="eyebrow">${icon("rise")}${esc(kicker)}</div>` : ""}<h1>${esc(title)}</h1><p>${esc(note)}</p></div>${actions ? `<div class="actions">${actions}</div>` : ""}</div>`;
+}
+function panel(title,content,actions="",subtitle="") {
+  return `<section class="panel"><header class="panel-head"><div><h2>${esc(title)}</h2>${subtitle ? `<p>${esc(subtitle)}</p>` : ""}</div>${actions}</header>${content}</section>`;
+}
+function subjectGlyph(subject) {
+  const [style,glyph] = subjectStyle[subject] ?? subjectStyle["其他"];
+  return `<span class="subject-icon ${style}">${icon(glyph)}</span>`;
+}
+const taskBy = id => model.tasks.find(task => task.id === id);
+const filesFor = id => model.attachments.filter(item => item.taskId === id);
+const reviewFor = id => model.reviews.filter(item => item.taskId === id);
+const currentReview = task => reviewFor(task.id).find(item => item.createdAt >= task.submittedAt);
+const actual = task => task.status === "submitted";
+const weekTasks = date => model.tasks.filter(task => task.date >= date && task.date < shift(date,7));
+const vocabOn = date => (model.vocabulary ?? []).find(item => item.date===date);
+const hasVocabulary = date => date>=firstDay && date<=model.examDate;
+function vocabularyTasks(begin,end) {
+  const from=begin>firstDay?begin:firstDay, to=end<model.examDate?end:model.examDate;
+  const result=[];
+  for(let date=from;date<=to;date=shift(date,1)) {
+    const completed=vocabOn(date);
+    result.push({id:"vocabulary-"+date,date,subject:"英语",minutes:vocabularyMinutes(),
+      status:completed?"submitted":"planned",actualMinutes:completed?.minutes ?? 0, vocabulary:true});
+  }
+  return result;
+}
+function vocabRow(date,withDate=false) {
+  if(!hasVocabulary(date)) return "";
+  const completed=vocabOn(date);
+  return `<article class="task-row">${subjectGlyph("英语")}
+   <button type="button" class="task-body" data-do="vocab-open" data-value="${date}"><b>不熟单词 · 记录与复习</b><small>${withDate?fmt(date)+" · ":""}英语 · ${vocabularyMinutes()} 分钟</small></button>
+   <div class="row-end">${completed?chip("已打卡","good"):chip(date<model.today?"待补卡":"待打卡",date<model.today?"late":"")}
+   ${button(completed || !student() || date>model.today?"查看":"打卡","vocab-open",{value:date})}</div></article>`;
+}
+function taskStatus(task) {
+  if (!actual(task)) return task.date < model.today ? ["待补做","late"] : ["待完成",""];
+  const latest = currentReview(task);
+  return latest ? [latest.rating,latest.rating === "建议补充" ? "wait" : "good"] : ["待评价","wait"];
+}
+function taskRow(task, withDate = true) {
+  const [status,palette] = taskStatus(task);
+  return `<article class="task-row">${subjectGlyph(task.subject)}
+  <button type="button" class="task-body" data-do="task-view" data-value="${esc(task.id)}"><b>${esc(task.title)}</b><small>${withDate ? fmt(task.date)+" · " : ""}${esc(task.subject)} · ${task.minutes} 分钟</small></button>
+  <div class="row-end">${chip(status,palette)}${student() && !actual(task) ? button("提交","task-submit",{value:task.id}) : button("","task-view",{glyph:"right",value:task.id,variant:"plain icon-only",label:"查看任务详情"})}</div>
+  </article>`;
+}
+function reviewItem(item) {
+  const palette = item.rating === "建议补充" ? "wait" : "good";
+  return `<article class="review"><div class="meta">${chip(item.rating,palette)} <b>${esc(item.author)}</b> · ${time(item.createdAt)}</div><p>${esc(item.comment)}</p></article>`;
+}
+function progressMetrics(tasks) {
+  const total = [...tasks,...vocabularyTasks(start(model.today),shift(start(model.today),6))];
+  const done = total.filter(actual);
+  const percent = total.length ? 100 * done.length / total.length : 0;
+  const mins = done.reduce((sum,item) => sum + (item.actualMinutes ?? 0),0);
+  const needing = done.filter(item => !item.vocabulary && !currentReview(item)).length;
+  const items = [
+    ["check","本周已提交",done.length,`/ ${total.length} 项`,percent],
+    ["timer","本周任务用时",mins,"分钟",null],
+    ["talk","本周待家长评价",needing,"项",null],
+  ];
+  return `<div class="metrics">${items.map(([glyph,label,value,unit,p]) => `<article class="metric"><span class="metric-icon">${icon(glyph)}</span><div><small>${label}</small><strong>${value}<span>${unit}</span></strong></div>${p === null ? "" : track(p)}</article>`).join("")}</div>`;
+}
+function focusPanel(date) {
+  const index = Math.max(0,Math.min(6,Math.floor(gap("2026-11-16",date)/7)));
+  const [title, note] = phases[index];
+  const monthly = model.monthlyDate && gap(start(date),model.monthlyDate) >= 0 && gap(start(date),model.monthlyDate) <= 12;
+  return `<section class="panel focus"><div class="focus-title">${icon("target")}${monthly ? "月考减量提醒" : "当周训练重点"}</div><h3>${monthly ? "优先校内月考" : title}</h3><p>${monthly ? "优先完成校内月考科目。校内同技能复习可计入当天计划，时间冲突可改任务安排。" : note}</p></section>`;
+}
+function subjectProgress(tasks) {
+  return panel("分科完成情况",`<div class="subject-summary">${["数学","英语"].map(subject => {
+    const set = tasks.filter(task => task.subject === subject);
+    const done = set.filter(actual).length;
+    return `<div class="summary-row ${subjectStyle[subject][0]}"><div class="summary-name"><b>${subject}</b><span>${done} / ${set.length} 项</span></div>${track(set.length ? 100*done/set.length : 0)}</div>`;
+  }).join("")}</div>`);
+}
+function dashboard() {
+  const currentWeek = weekTasks(start(model.today));
+  const withWords = [...currentWeek,...vocabularyTasks(start(model.today),shift(start(model.today),6))];
+  const todayTasks = model.tasks.filter(task => task.date === model.today);
+  const todayMinutes=todayTasks.reduce((total,task)=>total+task.minutes,0)+(hasVocabulary(model.today)?vocabularyMinutes():0);
+  const upcoming = model.tasks.filter(task => task.date > model.today && !actual(task)).slice(0,3);
+  const overdue = model.tasks.filter(task => task.date < model.today && !actual(task));
+  const days = gap(model.today,model.examDate);
+  const monthNote = model.monthlyDate ? ` · 月考 ${fmt(model.monthlyDate)}` : "";
+  const recent = model.reviews[0];
+  return `
+  ${heading(student() ? "学习总览" : "家长进度总览",`${fmt(model.today)} · ${weekday(model.today)}${monthNote}`,student() ? button("记学习日志","log-new",{glyph:"add"}) : button("给孩子留言","review-new",{glyph:"talk",variant:"primary"}),"潞河国际入学备考")}
+  <section class="hero"><div class="hero-content">
+    <div class="hero-date">${icon("calendar")} ${model.examConfirmed ? "考试日期" : "暂定考试日期"} · ${fmt(model.examDate)}</div>
+    <h2>${days > 0 ? `<strong>${days}</strong><span>天倒计时</span>` : days === 0 ? "今天考试" : "冲刺已结束"}</h2>
+    <p>数学 · 最后大题 &nbsp; / &nbsp; 英语 · 听力与面试</p></div>
+    <div class="hero-figure" aria-hidden="true"><span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="ring r4"></span><span class="ring r5"></span><span class="spark">${icon("rise")}</span><span class="dot"></span><span class="dot two"></span></div>
+  </section>
+  ${progressMetrics(currentWeek)}
+  <div class="grid"><div class="stack">
+    ${panel("今日任务",todayTasks.length || hasVocabulary(model.today) ? `<div class="task-list">${vocabRow(model.today)}${todayTasks.map(item=>taskRow(item,false)).join("")}</div>` : empty("calendar","今天没有安排","可以休息，或记录今天的校内复习。"),button("看全部计划","navigate",{value:"plan",variant:"plain",glyph:"right"}),todayMinutes?`计划 ${duration(todayMinutes)}`:"")}
+    ${panel("接下来",upcoming.length ? `<div class="task-list">${upcoming.map(item=>taskRow(item)).join("")}</div>` : empty("check","没有待开始的任务"))}
+    ${overdue.length ? panel(`待补做 · ${overdue.length} 项`,`<div class="task-list">${overdue.slice(0,4).map(item=>taskRow(item)).join("")}</div>`) : ""}
+  </div><div class="stack">
+    ${focusPanel(model.today)}
+    ${subjectProgress(withWords)}
+    ${panel("最新家长反馈",recent ? reviewItem(recent) : empty("talk","还没有家长评价"),button("查看","navigate",{value:"reviews",variant:"plain"}))}
+  </div></div>`;
+}
+function plan() {
+  const tasks = weekTasks(monday);
+  const combined=[...tasks,...vocabularyTasks(monday,shift(monday,6))];
+  const selected = model.monthlyDate;
+  const shiftWarn = selected && gap(monday,selected) >= 0 && gap(monday,selected) <= 12;
+  const weeks = Array.from({length:7},(_,i)=>shift(monday,i));
+  const done = combined.filter(actual).length;
+  return `${heading("学习计划",student() ? "按周查看安排，按任务调整日期和用时。" : "按周查看训练安排、任务状态和已交证据。", student() ? button("添加任务","task-new",{glyph:"add",variant:"primary",value:monday === start(model.today) ? model.today : monday}) : "")}
+  <div class="grid"><div class="stack"><section class="panel">
+    <div class="panel-head week-control"><div class="actions">${button("","week-change",{value:"-7",glyph:"left",variant:"icon-only",label:"上一周"})}<b>${weekName(monday)}</b>${button("","week-change",{value:"7",glyph:"right",variant:"icon-only",label:"下一周"})}</div>${button("回到本周","week-current")}</div>
+    <div class="week-stats">${chip(`计划 ${duration(combined.reduce((sum,task)=>sum+task.minutes,0))}`)}${chip(`已完成 ${done} / ${combined.length} 项`,"good")}</div>
+    ${shiftWarn ? `<div class="info">${icon("info")}<span>月考临近。校内同技能复习可计入当天安排，也可点任务名称调整时长。</span></div>` : ""}
+    <div class="week-days">${weeks.map(date=>{
+      const list = tasks.filter(task=>task.date===date);
+      const planned = combined.filter(task=>task.date===date).reduce((sum,task)=>sum+task.minutes,0);
+      return `<div><header class="day-label"><h3>${weekday(date)} <small>${fmt(date)}</small></h3>${planned?chip(duration(planned)):""}${date === model.today ? chip("今天","good") : ""}${student() ? button("","task-new",{glyph:"add",variant:"plain icon-only",value:date,label:`添加 ${fmt(date)} 的任务`}) : ""}</header>${list.length || hasVocabulary(date) ? `<div class="task-list">${vocabRow(date)}${list.map(item=>taskRow(item,false)).join("")}</div>` : `<p class="hint">当天未安排任务</p>`}</div>`;
+    }).join("")}</div></section></div><div class="stack">${focusPanel(monday)}${subjectProgress(combined)}</div></div>`;
+}
+function wordTestPanel() {
+  if(!testRound) return "";
+  const entry=testRound.queue[testRound.index];
+  const word=(model.words ?? []).find(item=>item.key===entry);
+  if(!word) {
+    const count=testRound.results.length;
+    const missed=testRound.results.filter(item=>!item.known).map(item=>item.key);
+    return panel("本轮自测结果",`<div class="record"><h3>${count-missed.length} / ${count} 记住了</h3><p>${missed.length?`${missed.length} 个词留在待复习列表。`:"本轮全部记住了。"}</p>
+      <div class="actions">${missed.length?button("再测没记住的","test-retry",{variant:"primary"}):""}${button("回到词表","test-end")}</div></div>`);
+  }
+  return panel(`自测 · ${testRound.index+1} / ${testRound.queue.length}`,`<div class="test-card">
+    <h3>${esc(word.word)}</h3><p>先回想词义，或用这个词造一个句子，再判断能不能独立用出来。</p>
+    ${testRound.revealed?`<div class="record">${word.note?esc(word.note):"这个词还没加释义或例句。请口头解释或造句后自评。"}</div>`:""}
+    <div class="actions">${testRound.revealed?"":button("显示提示 / 开始自评","test-reveal",{variant:"primary"})}
+    ${testRound.revealed?button("记住了","test-answer",{variant:"primary",value:"yes"})+button("还不熟","test-answer",{value:"no"}):""}
+    ${button("退出本轮","test-end",{variant:"plain"})}</div></div>`);
+}
+
+function vocabView() {
+  const date=vocabDate ?? (model.today>model.examDate?model.examDate:model.today);
+  const all=(model.words??[]).slice().sort((a,b)=>Number(a.known)-Number(b.known) || b.lastSeen.localeCompare(a.lastSeen) || a.word.localeCompare(b.word));
+  const list=all.filter(item=>vocabFilter==="全部" || (vocabFilter==="已掌握"?item.known:!item.known));
+  const recent=(model.vocabulary ?? []).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
+  const record=vocabOn(date);
+  const added=all.filter(item=>item.lastSeen===date);
+  const pending=all.filter(item=>!item.known).length;
+  const canCheck=student() && hasVocabulary(date) && date<=model.today;
+  const selector=`<label class="vocab-date">${icon("calendar")}<input type="date" value="${date}" min="${firstDay}" max="${model.examDate}" aria-label="选择记录日期" id="vocab-date"></label>`;
+  const listActions=`<div class="filters">${["待复习","已掌握","全部"].map(name=>`<button type="button" class="button" data-do="word-filter" data-value="${name}" aria-pressed="${name===vocabFilter}">${name}</button>`).join("")}</div>`;
+  const wordRows=list.map(item=>`<article class="record word-item"><details><summary><strong>${esc(item.word)}</strong> ${chip(item.known?"已掌握":"待复习",item.known?"good":"wait")}</summary>
+    <p>${esc(item.note||"还没添加释义或例句。")}</p><div class="meta">最近记录 ${fmt(item.lastSeen)} · 自测 ${item.attempts} 次</div>
+    ${student()?`<div class="actions">${button("编辑释义 / 例句","word-note",{value:item.key})}${button("删除","word-remove",{value:item.key,variant:"plain danger"})}</div>`:""}</details></article>`).join("");
+  return `${heading("不熟单词","把今天碰到的不熟单词存下来，从同一个词表复习和自测。",student()&&all.length?button("开始自测","test-start",{variant:"primary",glyph:"check"}):"")}
+    <div class="grid"><div class="stack">
+    ${panel(`${date===model.today?"今日记录":fmt(date)+"记录"}`,`${canCheck?`<form id="add-words" class="word-form"><label class="field"><span>输入不熟的单词或短语</span><textarea name="words" maxlength="8000" required placeholder="例如：lend, borrow, in spite of"></textarea></label>
+    <div class="actions"><button type="submit" class="button primary">加入复习词表</button><span class="hint">用换行或逗号分隔，相同词自动合并。</span></div><p class="form-error" role="alert"></p></form>`:""}
+    <div class="word-meta">${added.length?added.map(item=>chip(item.word)).join(""):`<span class="hint">这天还没有录入不熟单词。</span>`}</div>
+    <div class="actions">${record?chip(`已打卡 · ${record.minutes} 分钟`,"good"):""}${canCheck?button(record?"修改打卡":date===model.today?"完成今日打卡":"补打卡","vocab-check",{value:date,glyph:"check"}):""}</div>`,selector)}
+    ${wordTestPanel()}
+    ${panel("复习词表",listActions+(wordRows?`<div class="stack">${wordRows}</div>`:empty("words",all.length?"这个筛选下没有单词":"先添加你遇到的不熟单词")),"",`${pending} 个待复习 · 共 ${all.length} 个`)}
+    </div><div class="stack">
+    ${panel("最近打卡",recent.length?`<div class="task-list">${recent.map(item=>`<article class="task-row">${subjectGlyph("英语")}<button class="task-body" type="button" data-do="vocab-open" data-value="${item.date}"><b>${fmt(item.date)}</b><small>${item.minutes} 分钟${item.notes?" · "+esc(item.notes):""}</small></button></article>`).join("")}</div>`:empty("words","还没有单词打卡"))}
+    </div></div>`;
+}
+function logsView() {
+  return `${heading("学习日志","记录当天学了什么、花了多久，以及下次从哪里接着练。",student() ? button("写日志","log-new",{variant:"primary",glyph:"add"}) : "")}
+  <div class="stack">${model.logs.length ? model.logs.map(item => `<article class="record"><div class="meta">${chip(item.subject)} ${fmt(item.date)} · ${item.minutes} 分钟</div><p>${esc(item.content)}</p>${item.takeaway ? `<p><strong>下一步</strong>　${esc(item.takeaway)}</p>` : ""}${student() ? `<div class="actions">${button("编辑","log-edit",{value:item.id})}${button("删除","log-remove",{variant:"plain danger",value:item.id})}</div>` : ""}</article>`).join("") : panel("日志记录",empty("journal","还没有学习日志","完成当天学习后，可以写下一个收获和一个待解决的问题。"))}</div>`;
+}
+function mistakesView() {
+  const filtered = model.mistakes.filter(item => mistakeFilter === "全部" || (mistakeFilter==="待复练" ? !item.mastered : item.mastered));
+  return `${heading("错题本","记下做错的那一步，下次用一道条件变了的题检验。",student() ? button("记错题","mistake-new",{variant:"primary",glyph:"add"}) : "")}
+  <div class="filters">${["全部","待复练","已掌握"].map(text=>`<button class="button" type="button" data-do="mistake-filter" data-value="${text}" aria-pressed="${text===mistakeFilter}">${text}</button>`).join("")}</div>
+  <div class="stack">${filtered.length ? filtered.map(item=>`<article class="record">
+    <div class="meta">${chip(item.subject)} ${chip(item.mastered ? "已掌握" : "待复练",item.mastered?"good":"wait")} ${fmt(item.date)} ${item.source ? " · "+esc(item.source) : ""}</div>
+    <h3>${esc(item.title)}</h3><p><strong>卡点或错因</strong>　${esc(item.cause)}</p><p><strong>正确思路 / 复练方法</strong>　${esc(item.correction)}</p>
+    ${student() ? `<div class="actions">${button(item.mastered?"改回待复练":"标记已掌握","mistake-toggle",{value:item.id,variant:"primary",glyph:"check"})}${button("编辑","mistake-edit",{value:item.id})}${button("删除","mistake-remove",{value:item.id,variant:"plain danger"})}</div>` : ""}</article>`).join("") : panel("错题记录",empty("target",mistakeFilter === "全部" ? "还没有记录错题" : `没有${mistakeFilter}的错题`))}</div>`;
+}
+function reviewsView() {
+  const awaiting = model.tasks.filter(task=>actual(task) && !currentReview(task));
+  const summary = model.reviews.map(item=>`<div><div class="meta"><b>${esc(item.taskId ? taskBy(item.taskId)?.title ?? "任务反馈" : "家长留言")}</b>${item.taskId ? button("查看提交","task-view",{value:item.taskId,variant:"plain"}) : ""}</div>${reviewItem(item)}</div>`).join("");
+  return `${heading("家长反馈",student() ? "查看家长的留言、已确认评价和补充建议。" : "查看已提交的训练及证据，再确认完成情况或提出建议。", student() ? "" : button("写留言","review-new",{variant:"primary",glyph:"talk"}))}
+  <div class="grid"><div class="stack">${panel("待家长评价",awaiting.length ? `<div class="task-list">${awaiting.map(item=>taskRow(item)).join("")}</div>` : empty("check","没有待评价的任务"))}
+  ${panel("评价与留言",summary ? `<div class="stack">${summary}</div>` : empty("talk","还没有评价或留言"))}</div><div class="stack">${subjectProgress(weekTasks(start(model.today)))}</div></div>`;
+}
+function render() {
+  const label = sections[page][1];
+  const view = {home:dashboard,plan,vocab:vocabView,logs:logsView,mistakes:mistakesView,reviews:reviewsView}[page]();
+  const launch = window.sprintOffline || model.siteKind==="family" ? button(student()?"切换家长视图":"返回学生视图",window.sprintOffline?"local-role":"family-role",{glyph:"people"}) : student() ? button("邀请家长","share",{glyph:"people"}) : chip("家长端","good");
+  root.innerHTML = `<div class="shell"><aside class="sidebar">
+  <div class="brand"><span class="brand-icon">${icon("rise")}</span><div>潞河冲刺站<small>入学备考工作台</small></div></div>
+  <div class="nav-label">学习工作台</div><nav class="nav" aria-label="学习工作台">
+  ${Object.entries(sections).map(([key,[glyph,text]])=>`<button type="button" data-do="navigate" data-value="${key}" ${key===page?'aria-current="page"':""}>${icon(glyph)}${text}</button>`).join("")}</nav>
+  <div class="sidebar-bottom">${student() ? `<button class="side-action" type="button" data-do="settings">${icon("settings")} 考试日期设置</button>` : ""}
+  <div class="profile"><div class="avatar">${student()?"学":"家"}</div><div><b>${student()?"学生空间":"家长空间"}</b><span>家庭共享进度</span></div></div></div></aside>
+  <main class="main"><div class="topbar"><div class="crumb">工作台 ${icon("right")} <b>${label}</b></div><div class="top-actions">
+  ${button("","refresh",{glyph:"refresh",variant:"icon-only",label:"刷新进度"})}${student() ? button("","settings",{glyph:"settings",variant:"icon-only",label:"考试日期设置"}) : ""}${launch}${model.siteKind==="family" ? button("退出","logout",{variant:"plain"}) : ""}</div></div>${window.sprintOffline ? `<div class="local-banner">${icon("info")}<span>学习版 · 记录和附件保存在当前浏览器，家长视图仅供同设备使用。</span></div>` : ""}${view}</main></div>`;
+}
+function toast(message,error=false) {
+  const node = document.createElement("div");
+  node.className = error ? "toast error" : "toast"; node.textContent = message;
+  document.querySelector("#notifications").append(node);
+  setTimeout(()=>node.remove(),4200);
+}
+async function read() {
+  if(window.sprintOffline) {model=await window.sprintOffline.read();monday??=start(model.today);return;}
+  const res = await fetch("/api/sprint",{cache:"no-store"});
+  const data = await res.json().catch(()=>({error:"请重新打开网站并确认登录状态。"}));
+  if (!res.ok) throw new Error(data.error || "暂时无法读取数据。");
+  model = data;
+  monday ??= start(model.today);
+}
+async function requestChange(payload) {
+  const multipart=payload instanceof FormData;
+  const res=await fetch("/api/sprint",{
+    method:"POST",headers:multipart?{}:{"Content-Type":"application/json"},
+    body:multipart?payload:JSON.stringify(payload),
+  });
+  const data=await res.json().catch(()=>({error:"连接中断，请稍后重试。"}));
+  if(!res.ok) throw new Error(data.error || "保存失败。");
+  return data;
+}
+
+async function write(payload) {
+  if(window.sprintOffline) return window.sprintOffline.write(payload);
+  if(!(payload instanceof FormData) || !model.directUploads) return requestChange(payload);
+  const files=payload.getAll("files").filter(file=>file instanceof File && file.size>0);
+  const taskId=payload.get("id");
+  const updating=payload.get("mode")==="update";
+  let uploads=[];
+  if(files.length) {
+    const intent=await requestChange({action:"evidence.prepare",data:{taskId,updating,
+      files:files.map(({name,type,size})=>({name,type,size})),
+    }});
+    uploads=intent.uploads;
+    await Promise.all(uploads.map(async ({url},i)=>{
+      const result=await fetch(url,{method:"PUT",body:files[i],referrerPolicy:"no-referrer"});
+      if(!result.ok) throw new Error("附件上传失败，请重试。");
+    }));
+  }
+  return requestChange({action:"evidence.submit",data:{taskId,updating,uploadIds:uploads.map(item=>item.id),
+    notes:payload.get("notes"),actualMinutes:Number(payload.get("actualMinutes")),
+  }});
+}
+async function reloadAfterSave() {
+  try { await read(); render(); toast(window.sprintOffline?"已保存在当前浏览器。":"已保存，网站进度已更新。"); }
+  catch { toast("已保存。刷新页面即可查看更新。"); }
+}
+const field = (label,control) => `<label class="field"><span>${label}</span>${control}</label>`;
+const input = (name,value="",attrs="") => `<input name="${name}" value="${esc(value)}" ${attrs}>`;
+const textarea = (name,value="",attrs="") => `<textarea name="${name}" maxlength="3000" ${attrs}>${esc(value)}</textarea>`;
+const select = (name,values,value) => `<select name="${name}">${values.map(text=>`<option${text===value?" selected":""}>${esc(text)}</option>`).join("")}</select>`;
+const numberInput = (name,value) => input(name,value,'type="number" min="1" max="600" required');
+const dateInput = (name,value,required=true) => input(name,value,`type="date" ${required?"required":""}`);
+const subjectInput = value => select("subject",["数学","英语","其他"],value);
+
+function openModal(title,content,{onSubmit,saveLabel="保存",secondary=""}={}) {
+  if (dialog) dialog.close();
+  opener = document.activeElement;
+  const body = `<div class="modal-body">${content}${onSubmit ? '<p class="form-error" role="alert"></p>' : ""}</div><div class="modal-foot">${secondary}${button(onSubmit?"取消":"关闭","close")}${onSubmit ? `<button type="submit" class="button primary">${saveLabel}</button>` : ""}</div>`;
+  modalRoot.innerHTML = `<dialog aria-labelledby="dialog-title"><header class="modal-head"><h2 id="dialog-title">${esc(title)}</h2>${button("","close",{glyph:"close",variant:"plain icon-only",label:"关闭窗口"})}</header>${onSubmit ? `<form>${body}</form>` : body}</dialog>`;
+  dialog = modalRoot.querySelector("dialog");
+  const current = dialog;
+  current.addEventListener("close", () => {
+    if (dialog !== current) return;
+    dialog = undefined; modalRoot.replaceChildren();
+    if (opener?.isConnected) opener.focus();
+  });
+  if (onSubmit) current.querySelector("form").addEventListener("submit",async event=>{
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formError = form.querySelector(".form-error");
+    formError.textContent = "";
+    const submit = form.querySelector('[type="submit"]');
+    if (submit.disabled) return;
+    submit.disabled = true;
+    try { await onSubmit(new FormData(form)); current.close(); await reloadAfterSave(); }
+    catch(error) { formError.textContent = error.message; }
+    finally { submit.disabled = false; }
+  });
+  current.showModal();
+}
+const save = (action,id,record) => write({action,id,data:record});
+const formObject = form => Object.fromEntries(form);
+
+function editTask(item,date) {
+  openModal(item?"调整任务":"添加任务",`
+    ${field("任务名称",input("title",item?.title,'required maxlength="140" placeholder="例如：独立重做一道几何大题"'))}
+    <div class="fields three">${field("安排日期",dateInput("date",item?.date??date))}${field("学科",subjectInput(item?.subject??"数学"))}${field("计划用时（分钟）",numberInput("minutes",item?.minutes??30))}</div>
+    ${field("学习要求",textarea("detail",item?.detail,'placeholder="写清计划完成什么"'))}
+  `,{onSubmit:form=>save("task.save",item?.id,{...formObject(form),minutes:Number(form.get("minutes"))})});
+}
+function viewTask(item) {
+  if (!item) return;
+  const [status,palette] = taskStatus(item);
+  const attachments = filesFor(item.id);
+  const notes = reviewFor(item.id);
+  openModal(item.title,`
+    <div class="meta">${chip(item.subject)} ${chip(status,palette)} ${fmt(item.date)} · 计划 ${duration(item.minutes)}</div>
+    ${item.detail ? `<p class="record">${esc(item.detail)}</p>` : ""}
+    ${actual(item) ? `<div class="record"><h3>任务提交</h3><div class="meta">${time(item.submittedAt)} · 实际 ${duration(item.actualMinutes)}</div><p>${esc(item.notes)}</p></div>
+       ${attachments.length ? `<div class="file-list"><b>学习证据</b>${attachments.map(file=>window.sprintOffline ? button(file.name,"local-download",{glyph:"clip",variant:"file-link",value:file.id}) : model.directUploads ? button(file.name,"download-evidence",{glyph:"clip",variant:"file-link",value:file.id}) : `<a class="button file-link" href="/api/evidence/${encodeURIComponent(file.id)}" download>${icon("clip")}${esc(file.name)} · ${Math.max(1,Math.round(file.size/1024))} KB</a>`).join("")}</div>` : ""}
+       ${notes.length ? `<div><b>家长评价</b>${notes.map(reviewItem).join("")}</div>` : ""}` : ""}
+    <div class="actions">
+    ${student() ? button("调整任务","task-edit",{glyph:"edit",value:item.id}) : ""}
+    ${student() && actual(item) ? button("补交或更新提交","task-submit",{value:item.id}) : ""}
+    ${student() && !actual(item) ? button("提交任务","task-submit",{variant:"primary",value:item.id}) + button("删除任务","task-remove",{variant:"plain danger",value:item.id}) : ""}
+    ${!student() && actual(item) ? button("给出评价","review-new",{variant:"primary",glyph:"talk",value:item.id}) : ""}
+    </div>`);
+}
+function submitTask(item) {
+  if (!item) return;
+  const updating = actual(item);
+  const slots = 3 - filesFor(item.id).length;
+  openModal(updating ? "补交或更新提交" : "提交任务",`<div class="meta">${chip(item.subject)}<b>${esc(item.title)}</b></div>
+    ${field("实际用时（分钟）",numberInput("actualMinutes",item.actualMinutes ?? item.minutes))}
+    ${field("完成情况",textarea("notes",item.notes ?? "",'required placeholder="写下完成了什么，以及遇到的一个问题"'))}
+    ${slots > 0 ? field("上传学习证据（可选）",'<input type="file" name="files" accept="image/*,audio/*,.pdf" multiple>') : ""}
+    <p class="hint">${slots > 0 ? `还可上传 ${slots} 个练习照片、PDF 或面试录音，每个不超过 8 MB。` : "附件已满 3 个，可以更新提交说明。"}${updating ? " 已上传的附件会保留。" : ""}</p>
+  `,{saveLabel:"提交给家长",onSubmit:form=>{form.set("id",item.id);if (updating) form.set("mode","update");return write(form);}});
+}
+function vocabCheck(date) {
+  const existing=vocabOn(date);
+  if(date>model.today || !hasVocabulary(date)) return;
+  openModal("单词打卡",`<div class="meta">${fmt(date)} · 记录今天的单词学习</div>
+    ${field("实际用时（分钟）",numberInput("minutes",existing?.minutes??vocabularyMinutes()))}
+    ${field("复习备注（可选）",`<textarea name="notes" maxlength="500" placeholder="例如：复习了借入和借出的表达">${esc(existing?.notes)}</textarea>`)}`,
+  {onSubmit:form=>save("vocab.save",undefined,{date,minutes:Number(form.get("minutes")),notes:form.get("notes")})});
+}
+
+function editWordNote(key) {
+  const item=(model.words??[]).find(word=>word.key===key);
+  if(!item) return;
+  openModal(item.word,field("释义或例句",`<textarea name="note" maxlength="400" placeholder="例如：lend = 借出. Can you lend me a pen?">${esc(item.note)}</textarea>`),
+  {onSubmit:form=>save("word.note",undefined,{key,note:form.get("note")})});
+}
+
+function startWordsTest(keys) {
+  if(!keys.length) return;
+  testRound={queue:keys,index:0,revealed:false,results:[]};
+  render();
+  document.querySelector(".test-card")?.scrollIntoView({block:"nearest"});
+}
+function editLog(item) {
+  openModal(item?"编辑日志":"记录学习日志",`
+    <div class="fields three">${field("学习日期",dateInput("date",item?.date??model.today))}${field("学科",subjectInput(item?.subject??"数学"))}${field("用时（分钟）",numberInput("minutes",item?.minutes??30))}</div>
+    ${field("今天学了什么",textarea("content",item?.content,'required placeholder="例如：重做了二次函数压轴题的第二问"'))}
+    ${field("下一步（可选）",textarea("takeaway",item?.takeaway,'placeholder="下次要再练什么？"'))}
+  `,{onSubmit:form=>save("log.save",item?.id,{...formObject(form),minutes:Number(form.get("minutes"))})});
+}
+function editMistake(item) {
+  openModal(item?"编辑错题":"记录错题",`
+    <div class="fields">${field("日期",dateInput("date",item?.date??model.today))}${field("学科",subjectInput(item?.subject??"数学"))}</div>
+    ${field("题目或知识点",input("title",item?.title,'required maxlength="140" placeholder="例如：二次函数与三角形面积"'))}
+    ${field("出处 / 题号（可选）",input("source",item?.source,'maxlength="300" placeholder="例如：周测卷第 26 题第 2 问"'))}
+    ${field("卡点或错因",textarea("cause",item?.cause,'required placeholder="从哪一步开始卡住？"'))}
+    ${field("正确思路 / 复练方法",textarea("correction",item?.correction,'required placeholder="写下突破口，或下一步要练的变式"'))}
+    <label class="check"><input type="checkbox" name="mastered" ${item?.mastered?"checked":""}> 已经能独立做对同类题</label>
+  `,{onSubmit:form=>save("mistake.save",item?.id,{...formObject(form),mastered:form.has("mastered")})});
+}
+function makeReview(id) {
+  const task = id ? taskBy(id) : null;
+  openModal(task?"评价已提交任务":"给孩子留言",`
+    ${task ? `<div class="meta">${chip(task.subject)}<b>${esc(task.title)}</b></div>${field("评价",select("rating",["已确认","建议补充"],"已确认"))}` : ""}
+    ${field(task?"具体反馈":"留言",textarea("comment","",'required placeholder="写出已经做得扎实的部分，或者希望下次补充的一步"'))}
+  `,{saveLabel:"发布",onSubmit:form=>save("review",undefined,{taskId:task?.id??null,rating:form.get("rating")??"留言",comment:form.get("comment")})});
+}
+function settings() {
+  openModal("考试日期设置",`
+    ${field("潞河国际考试日期",dateInput("examDate",model.examDate))}
+    <label class="check"><input type="checkbox" name="examConfirmed" ${model.examConfirmed?"checked":""}> 已收到学校确认</label>
+    ${field("校内月考日期（可选）",dateInput("monthlyDate",model.monthlyDate??"",false))}
+    <p class="hint">设置月考日期后，临近月考的周计划会提示减量。可以逐项改日期和时长。</p>
+  `,{onSubmit:form=>save("settings",undefined,{examDate:form.get("examDate"),monthlyDate:form.get("monthlyDate")||null,examConfirmed:form.has("examConfirmed")})});
+}
+function share() {
+  openModal("邀请家长",`<p>在 ChatGPT 网站页面的「分享」中，添加家长的 ChatGPT 登录邮箱为查看者，再把下面的链接发给家长。</p><p>家长用自己的账号登录后，可在网站里查看同步进度和附件，给任务评价或留言。</p>
+    ${field("网站链接",`<input id="share-link" readonly value="${esc(location.origin+"/")}">`)}
+    <div class="actions">${button("复制链接","copy-link",{glyph:"copy"})}</div>`);
+}
+function confirmRemove(kind,id) {
+  openModal("确认删除","<p>删除后，这条记录将从学生和家长端一起移除。</p>",{
+    saveLabel:"删除",onSubmit:()=>save(kind+".remove",id,null),
+  });
+}
+
+async function handle(action,id) {
+  switch(action) {
+    case "navigate": if(sections[id]) {page=id;render();window.scrollTo(0,0);} break;
+    case "week-change": monday=shift(monday,Number(id));render();break;
+    case "week-current": monday=start(model.today);render();break;
+    case "task-new": editTask(undefined,id||model.today);break;
+    case "task-edit": editTask(taskBy(id),model.today);break;
+    case "task-view": viewTask(taskBy(id));break;
+    case "task-submit": submitTask(taskBy(id));break;
+    case "task-remove": confirmRemove("task",id);break;
+    case "vocab-open": vocabDate=id;page="vocab";render();window.scrollTo(0,0);break;
+    case "vocab-check": vocabCheck(id);break;
+    case "word-filter": vocabFilter=id;render();break;
+    case "word-note": editWordNote(id);break;
+    case "word-remove": openModal("删除单词","<p>将从复习词表移除此词和该词的自测状态。</p>",{saveLabel:"删除",onSubmit:()=>save("word.remove",undefined,{key:id})});break;
+    case "test-start": {
+      const words=(model.words??[]);
+      const pending=words.filter(word=>!word.known);
+      startWordsTest((pending.length?pending:words).map(word=>word.key));
+      break;
+    }
+    case "test-reveal": if(testRound){testRound.revealed=true;render();}break;
+    case "test-answer": {
+      const round=testRound;
+      if(!round?.revealed || round.pending) break;
+      round.pending=true;
+      try {
+        const key=round.queue[round.index];
+        const known=id==="yes";
+        await save("word.test",undefined,{key,known});
+        round.results.push({key,known});
+        round.index++;
+        round.revealed=false;
+        await read();render();
+      } finally {round.pending=false;}
+      break;
+    }
+    case "test-retry": if(testRound) startWordsTest(testRound.results.filter(item=>!item.known).map(item=>item.key));break;
+    case "test-end": testRound=undefined;render();break;
+
+    case "log-new": editLog();break;
+    case "log-edit": editLog(model.logs.find(item=>item.id===id));break;
+    case "log-remove": confirmRemove("log",id);break;
+    case "mistake-new": editMistake();break;
+    case "mistake-edit": editMistake(model.mistakes.find(item=>item.id===id));break;
+    case "mistake-remove": confirmRemove("mistake",id);break;
+    case "mistake-filter": mistakeFilter=id;render();break;
+    case "mistake-toggle": {
+      const item=model.mistakes.find(row=>row.id===id);
+      if(item){await save("mistake.save",id,{...item,mastered:!item.mastered});await reloadAfterSave();}
+      break;
+    }
+    case "review-new": makeReview(id);break;
+    case "settings": settings();break;
+    case "family-role": {
+      const res=await fetch("/access/mode",{method:"POST"});
+      if(!res.ok) throw new Error("登录已过期，请刷新页面。");
+      await read();render();break;
+    }
+    case "logout": {
+      const res=await fetch("/access/logout",{method:"POST"});
+      if(!res.ok) throw new Error("暂时无法退出，请刷新后再试。");
+      location.assign("/");break;
+    }
+    case "local-role": window.sprintOffline.changeRole();await read();render();break;
+    case "local-download": await window.sprintOffline.download(id);break;
+    case "download-evidence": {
+      const file=model.attachments.find(item=>item.id===id);
+      if(!file) break;
+      const result=await fetch("/api/evidence/"+encodeURIComponent(id),{referrerPolicy:"no-referrer"});
+      if(!result.ok) throw new Error("暂时无法下载此附件。");
+      const url=URL.createObjectURL(await result.blob());
+      const link=document.createElement("a");
+      link.href=url;
+      link.download=file.name;
+      link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+      break;
+    }
+    case "share": share();break;
+    case "copy-link": {
+      const input=document.querySelector("#share-link");
+      try { await navigator.clipboard.writeText(input.value);toast("已复制网站链接。"); }
+      catch { input.focus();input.select();toast("已选中链接，可以手动复制。"); }
+      break;
+    }
+    case "close": dialog?.close();break;
+    case "refresh": await read();render();toast("共享进度已更新。");break;
+    case "retry": await boot();break;
+  }
+}
+
+document.addEventListener("click",event=>{
+  const element = event.target.closest("[data-do]");
+  if(!element || element.disabled) return;
+  if (["refresh","mistake-toggle","test-answer"].includes(element.dataset.do)) element.disabled = true;
+  handle(element.dataset.do,element.dataset.value).catch(error=>toast(error.message,true)).finally(()=>{element.disabled=false;});
+});
+
+document.addEventListener("change",event=>{
+  if(event.target.id==="vocab-date" && event.target.validity.valid && event.target.value) {vocabDate=event.target.value;render();}
+});
+
+document.addEventListener("submit",async event=>{
+  if(event.target.id!=="add-words") return;
+  event.preventDefault();
+  const form=event.target;
+  const submit=form.querySelector('[type="submit"]');
+  const alert=form.querySelector(".form-error");
+  if(submit.disabled) return;
+  alert.textContent="";
+  submit.disabled=true;
+  try {
+    const date=vocabDate ?? (model.today>model.examDate?model.examDate:model.today);
+    await save("word.add",undefined,{date,words:new FormData(form).get("words")});
+    vocabFilter="待复习";
+    await reloadAfterSave();
+  } catch(error) {alert.textContent=error.message;}
+  finally {submit.disabled=false;}
+});
+
+async function boot() {
+  try {await read();render();}
+  catch(error) {
+    root.innerHTML=`<div class="initial"><span class="brand-icon">${icon("rise")}</span><b>暂时无法打开冲刺站</b><p>${esc(error.message)}</p>${button("重试","retry",{variant:"primary",glyph:"refresh"})}</div>`;
+  }
+}
+boot();
+
+</script>
+</head>
+<body>
+  <div id="sprint-app"><div class="initial"><span class="brand-icon">↗</span><p>正在打开冲刺站…</p></div></div>
+  <div id="modal-root"></div>
+  <div id="notifications" role="status" aria-live="polite"></div>
+</body>
+</html>
