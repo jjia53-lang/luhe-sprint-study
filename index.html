@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex,nofollow">
   <title>潞河冲刺站</title>
   <meta name="description" content="查看冲刺计划、交训练证据、记录错题，与家长共享学习进度。">
@@ -176,6 +177,11 @@ dialog::backdrop{background:#1d332d70}
 .test-card p{font-size:14px;color:var(--muted);line-height:1.55}
 </style>
   <script type="module">
+import { completionEvent, enqueueCompletion, linkToken, createSync } from "./cloud-sync.mjs";
+import { configuration as cloudConfig } from "./cloudbase-config.mjs";
+
+const initialSyncToken = cloudConfig ? linkToken(location, history, sessionStorage) : null;
+let syncClient, syncRole, syncError, syncDate, syncRecords;
 const firstDay = "2026-11-16";
 const defaultExam = "2026-12-31";
 
@@ -484,7 +490,13 @@ window.sprintOffline={
   },
   async write(payload) {
     await withState((state,store)=>{
-      if(payload instanceof FormData) {localSubmit(state,store,payload);return;}
+      if(payload instanceof FormData) {
+        localSubmit(state,store,payload);
+        if (initialSyncToken && syncRole!=="parent") {
+          enqueueCompletion(state,completionEvent("task",state.tasks.find(task=>task.id===payload.get("id"))));
+        }
+        return;
+      }
       const {action,id,data}=payload;
       if(action==="review") {
         if(role!=="parent") throw new Error("请从家长预览提交评价。");
@@ -509,6 +521,7 @@ window.sprintOffline={
           const old=state.vocabulary.findIndex(item=>item.date===data.date);
           if(old<0) state.vocabulary.unshift(entry);
           else state.vocabulary[old]={...state.vocabulary[old],...entry};
+          if (initialSyncToken && syncRole!=="parent") enqueueCompletion(state,completionEvent("vocab",entry));
           break;
         }
         case "word.add": {
@@ -616,7 +629,7 @@ if (!window.sprintOffline) {
   window.addEventListener("hashchange",hideFamilyLink);
 }
 let model, page = "home", monday, vocabDate, vocabFilter = "待复习", testRound, mistakeFilter = "全部", dialog, opener;
-const student = () => model.role === "student";
+const student = () => syncRole!=="parent" && model.role === "student";
 
 function button(text, action, {variant = "", glyph = "", value = "", label = ""} = {}) {
   return `<button type="button" class="button ${variant}" data-do="${action}" data-value="${esc(value)}"${label ? ` aria-label="${esc(label)}" title="${esc(label)}"` : ""}>${glyph ? icon(glyph) : ""}${esc(text)}</button>`;
@@ -844,18 +857,72 @@ function reviewsView() {
   <div class="grid"><div class="stack">${panel("待家长评价",awaiting.length ? `<div class="task-list">${awaiting.map(item=>taskRow(item)).join("")}</div>` : empty("check","没有待评价的任务"))}
   ${panel("评价与留言",summary ? `<div class="stack">${summary}</div>` : empty("talk","还没有评价或留言"))}</div><div class="stack">${subjectProgress(weekTasks(start(model.today)))}</div></div>`;
 }
+function syncPanel() {
+  if (!initialSyncToken) return "";
+  if (!syncRole) {
+    return panel("家庭进度同步",`<p class="hint">${esc(syncError||"正在验证家庭链接…")}</p>`,
+      syncError?button("重试连接","sync-connect",{glyph:"refresh"}):"");
+  }
+  const row = entry => `<article class="task-row">${subjectGlyph(entry.subject??"英语")}<div class="task-body">
+    <b>${entry.kind==="vocab"?"单词复习":esc(entry.title)}</b><small>${entry.minutes} 分钟</small></div></article>`;
+  const days = `<label class="field"><span>按日期查看云端记录（北京时间）</span><input type="date" id="sync-date" min="${firstDay}" value="${esc(syncDate)}"></label>`;
+  const status = syncError ? `<p class="hint" role="status">${esc(syncError)}</p>`
+    : syncRole==="student" ? `<p class="hint" role="status">${(model.syncPending??[]).length?"待同步":"已同步"} · 任务完成与单词打卡</p>` : "";
+  const entries = syncRecords?.length ? `<div class="task-list">${syncRecords.map(row).join("")}</div>`
+    : `<p class="hint">${syncRecords?"当天暂无已同步的完成记录。":syncError?"":"正在读取云端记录…"}</p>`;
+  const importButton = syncRole==="student" && cloudConfig.allowImport && !(model.syncHistoryImported)
+    ? button("同步本机历史","sync-import",{glyph:"refresh"}) : "";
+  return panel("家庭进度同步",days+status+entries,`<div class="actions">${importButton}${button("刷新云端进度","sync-refresh",{glyph:"refresh"})}</div>`);
+}
+
+async function refreshSync() {
+  syncError=undefined;
+  const date=syncDate;
+  try {
+    if (syncRole==="student") await syncClient.flush();
+    const {entries}=await syncClient.day(date);
+    if (syncDate===date) syncRecords=entries;
+  } catch {
+    syncError=syncRole==="student" ? "暂时无法同步。本机记录已保存，请稍后刷新重试。" : "暂时无法读取云端，请刷新重试。";
+    if (syncDate===date) syncRecords=null;
+  }
+  await read();
+  render();
+}
+
+async function connectSync() {
+  if (!initialSyncToken || syncRole) return;
+  try {
+    const {loadCloudBase}=await import("./cloudbase-client.mjs");
+    const cloudbase=await loadCloudBase();
+    const cloud=cloudbase.init({ env:cloudConfig.env, region:cloudConfig.region, accessKey:cloudConfig.accessKey });
+    syncClient=createSync(async data=>{
+      const {result}=await cloud.callFunction({ name:"sprintSync", data, parse:true });
+      return typeof result==="string" ? JSON.parse(result) : result;
+    },initialSyncToken,withState);
+    const connection=await syncClient.connect();
+    syncRole=connection.role;
+    syncDate=model.today;
+    page="home";
+    await refreshSync();
+  } catch {
+    syncError="暂时无法连接家庭同步，请检查链接并重试。";
+    render();
+  }
+}
+
 function render() {
   const label = sections[page][1];
   const view = {home:dashboard,plan,vocab:vocabView,logs:logsView,mistakes:mistakesView,reviews:reviewsView}[page]();
-  const launch = window.sprintOffline || model.siteKind==="family" ? button(student()?"切换家长视图":"返回学生视图",window.sprintOffline?"local-role":"family-role",{glyph:"people"}) : student() ? button("邀请家长","share",{glyph:"people"}) : chip("家长端","good");
+  const launch = syncRole==="parent" ? chip("家长只读","good") : window.sprintOffline || model.siteKind==="family" ? button(student()?"切换家长视图":"返回学生视图",window.sprintOffline?"local-role":"family-role",{glyph:"people"}) : student() ? button("邀请家长","share",{glyph:"people"}) : chip("家长端","good");
   root.innerHTML = `<div class="shell"><aside class="sidebar">
   <div class="brand"><span class="brand-icon">${icon("rise")}</span><div>潞河冲刺站<small>入学备考工作台</small></div></div>
   <div class="nav-label">学习工作台</div><nav class="nav" aria-label="学习工作台">
-  ${Object.entries(sections).map(([key,[glyph,text]])=>`<button type="button" data-do="navigate" data-value="${key}" ${key===page?'aria-current="page"':""}>${icon(glyph)}${text}</button>`).join("")}</nav>
+  ${Object.entries(syncRole==="parent"?{home:sections.home}:sections).map(([key,[glyph,text]])=>`<button type="button" data-do="navigate" data-value="${key}" ${key===page?'aria-current="page"':""}>${icon(glyph)}${text}</button>`).join("")}</nav>
   <div class="sidebar-bottom">${student() ? `<button class="side-action" type="button" data-do="settings">${icon("settings")} 考试日期设置</button>` : ""}
   <div class="profile"><div class="avatar">${student()?"学":"家"}</div><div><b>${student()?"学生空间":"家长空间"}</b><span>本机学习进度</span></div></div></div></aside>
   <main class="main"><div class="topbar"><div class="crumb">工作台 ${icon("right")} <b>${label}</b></div><div class="top-actions">
-  ${button("","refresh",{glyph:"refresh",variant:"icon-only",label:"刷新进度"})}${student() ? button("","settings",{glyph:"settings",variant:"icon-only",label:"考试日期设置"}) : ""}${launch}${model.siteKind==="family" ? button("退出","logout",{variant:"plain"}) : ""}</div></div>${window.sprintOffline ? `<div class="local-banner">${icon("info")}<span>学习版 · 记录和附件保存在当前浏览器，家长视图仅供同设备使用。</span></div>` : ""}${view}</main></div>`;
+  ${button("","refresh",{glyph:"refresh",variant:"icon-only",label:"刷新进度"})}${student() ? button("","settings",{glyph:"settings",variant:"icon-only",label:"考试日期设置"}) : ""}${launch}${model.siteKind==="family" ? button("退出","logout",{variant:"plain"}) : ""}</div></div>${window.sprintOffline ? `<div class="local-banner">${icon("info")}<span>学习版 · ${syncRole==="parent"?"此链接仅供查看学生同步的完成记录。":syncRole==="student"?"已提交的任务和单词打卡会同步，附件与其他记录保存在当前浏览器。":"记录和附件保存在当前浏览器。"} </span></div>` : ""}${page==="home"?syncPanel():""}${syncRole==="parent"?"":view}</main></div>`;
 }
 function toast(message,error=false) {
   const node = document.createElement("div");
@@ -904,7 +971,10 @@ async function write(payload) {
   }});
 }
 async function reloadAfterSave() {
-  try { await read(); render(); toast(window.sprintOffline?"已保存在当前浏览器。":"已保存，网站进度已更新。"); }
+  try {
+    await read(); render(); toast(window.sprintOffline?"已保存在当前浏览器。":"已保存，网站进度已更新。");
+    if (syncRole==="student" && model.syncPending?.length) await refreshSync();
+  }
   catch { toast("已保存。刷新页面即可查看更新。"); }
 }
 const field = (label,control) => `<label class="field"><span>${label}</span>${control}</label>`;
@@ -1125,6 +1195,22 @@ async function handle(action,id) {
       break;
     }
     case "share": share();break;
+    case "sync-connect": await connectSync();break;
+    case "sync-refresh": await refreshSync();break;
+    case "sync-import":
+      if (syncRole==="student" && cloudConfig.allowImport) {
+        openModal("同步本机历史", "<p>把这个浏览器里的已完成任务及单词打卡上传，家长可以按日查看。</p>", {
+          saveLabel:"同步历史",
+          onSubmit:async ()=>{
+            await withState(state=>{
+              for (const task of state.tasks.filter(actual)) enqueueCompletion(state,completionEvent("task",task));
+              for (const checkIn of state.vocabulary) enqueueCompletion(state,completionEvent("vocab",checkIn));
+              state.syncHistoryImported=true;
+            });
+          },
+        });
+      }
+      break;
     case "copy-today": await copyTodayCompletion();break;
     case "copy-link": {
       const input=document.querySelector("#share-link");
@@ -1141,11 +1227,16 @@ async function handle(action,id) {
 document.addEventListener("click",event=>{
   const element = event.target.closest("[data-do]");
   if(!element || element.disabled) return;
-  if (["refresh","mistake-toggle","test-answer"].includes(element.dataset.do)) element.disabled = true;
+  if (["refresh","sync-connect","sync-refresh","mistake-toggle","test-answer"].includes(element.dataset.do)) element.disabled = true;
   handle(element.dataset.do,element.dataset.value).catch(error=>toast(error.message,true)).finally(()=>{element.disabled=false;});
 });
 
 document.addEventListener("change",event=>{
+  if (event.target.id==="sync-date" && event.target.value && event.target.validity.valid) {
+    syncDate=event.target.value;
+    syncRecords=undefined;
+    refreshSync().catch(error=>toast(error.message,true));
+  }
   if(event.target.id==="vocab-date" && event.target.validity.valid && event.target.value) {vocabDate=event.target.value;render();}
 });
 
@@ -1168,7 +1259,7 @@ document.addEventListener("submit",async event=>{
 });
 
 async function boot() {
-  try {await read();render();}
+  try {await read();render();await connectSync();}
   catch(error) {
     root.innerHTML=`<div class="initial"><span class="brand-icon">${icon("rise")}</span><b>暂时无法打开冲刺站</b><p>${esc(error.message)}</p>${button("重试","retry",{variant:"primary",glyph:"refresh"})}</div>`;
   }
