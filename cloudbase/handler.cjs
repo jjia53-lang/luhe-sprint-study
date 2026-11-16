@@ -7,11 +7,11 @@ const validDate = value => {
     && value >= "2026-11-16";
 };
 
-function getRole(token, secrets) {
+function getAccess(token, secrets) {
   if (typeof token !== "string" || !/^[0-9a-f]{64}$/.test(token)) return null;
   const digest = hash(token);
   for (const [role, expected] of Object.entries(secrets)) {
-    if (/^[0-9a-f]{64}$/.test(expected ?? "") && timingSafeEqual(digest, Buffer.from(expected, "hex"))) return role;
+    if (/^[0-9a-f]{64}$/.test(expected ?? "") && timingSafeEqual(digest, Buffer.from(expected, "hex"))) return { role:role.replace(/^test-/, ""), scope:role.startsWith("test-") ? "test" : "family" };
   }
   return null;
 }
@@ -31,8 +31,9 @@ function completion(value) {
 
 function createHandler(store, secrets) {
   return async function main(event = {}) {
-    const role = getRole(event.token, secrets);
-    if (!role) return { ok:false, error:"访问链接无效。" };
+    const access = getAccess(event.token, secrets);
+    if (!access) return { ok:false, error:"访问链接无效。" };
+    const {role,scope} = access;
     switch (event.action) {
       case "connect":
         return { ok:true, role };
@@ -42,14 +43,14 @@ function createHandler(store, secrets) {
         if (!entries?.length || entries.includes(null)) return { ok:false, error:"提交的数据格式不正确。" };
         for (const entry of entries) {
           // Retries use the same document ID, and older revisions cannot overwrite a newer event.
-          const id = hash(JSON.stringify(entry)).toString("hex").slice(0, 32);
-          await store.put(id, entry);
+          const id = hash(scope + JSON.stringify(entry)).toString("hex").slice(0, 32);
+          await store.put(id, entry, scope);
         }
         return { ok:true, count:entries.length };
       }
       case "day": {
         if (!validDate(event.date)) return { ok:false, error:"请选择冲刺期间的日期。" };
-        const entries = await store.day(event.date);
+        const entries = await store.day(event.date, scope);
         const latest = new Map();
         for (const entry of entries) {
           const key = entry.kind + ":" + entry.itemId;

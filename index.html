@@ -181,6 +181,12 @@ import { completionEvent, enqueueCompletion, linkToken, createSync } from "./clo
 import { configuration as cloudConfig } from "./cloudbase-config.mjs";
 
 const initialSyncToken = cloudConfig ? linkToken(location, history, sessionStorage) : null;
+if (cloudConfig) {
+  addEventListener("hashchange",()=>{
+    if (new URLSearchParams(location.hash.slice(1)).has("sync")) location.reload();
+  });
+}
+
 let syncClient, syncRole, syncError, syncDate, syncRecords;
 const firstDay = "2026-11-16";
 const defaultExam = "2026-12-31";
@@ -893,12 +899,13 @@ async function refreshSync() {
 async function connectSync() {
   if (!initialSyncToken || syncRole) return;
   try {
-    const {loadCloudBase}=await import("./cloudbase-client.mjs");
-    const cloudbase=await loadCloudBase();
-    const cloud=cloudbase.init({ env:cloudConfig.env, region:cloudConfig.region, accessKey:cloudConfig.accessKey });
     syncClient=createSync(async data=>{
-      const {result}=await cloud.callFunction({ name:"sprintSync", data, parse:true });
-      return typeof result==="string" ? JSON.parse(result) : result;
+      const response=await fetch(cloudConfig.endpoint,{
+        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data),
+        credentials:"omit", referrerPolicy:"no-referrer", cache:"no-store",
+        signal:AbortSignal.timeout(12000),
+      });
+      return response.json();
     },initialSyncToken,withState);
     const connection=await syncClient.connect();
     syncRole=connection.role;
@@ -1264,6 +1271,9 @@ async function boot() {
     root.innerHTML=`<div class="initial"><span class="brand-icon">${icon("rise")}</span><b>暂时无法打开冲刺站</b><p>${esc(error.message)}</p>${button("重试","retry",{variant:"primary",glyph:"refresh"})}</div>`;
   }
 }
+addEventListener("online",()=>{
+  if (syncRole==="student") refreshSync().catch(error=>toast(error.message,true));
+});
 boot();
 
 </script>
