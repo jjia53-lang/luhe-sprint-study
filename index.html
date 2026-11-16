@@ -177,10 +177,10 @@ dialog::backdrop{background:#1d332d70}
 .test-card p{font-size:14px;color:var(--muted);line-height:1.55}
 </style>
   <script type="module">
-import { completionEvent, enqueueCompletion, linkToken, createSync } from "./cloud-sync.mjs";
+import { completionEvent, enqueueCompletion, mergeCloud, linkToken, createSync } from "./cloud-sync.mjs";
 import { configuration as cloudConfig } from "./cloudbase-config.mjs";
 
-const initialSyncToken = cloudConfig ? linkToken(location, history, sessionStorage) : null;
+const initialSyncToken = cloudConfig ? linkToken(location, history, localStorage, sessionStorage) : null;
 if (cloudConfig) {
   addEventListener("hashchange",()=>{
     if (new URLSearchParams(location.hash.slice(1)).has("sync")) location.reload();
@@ -870,22 +870,29 @@ function syncPanel() {
       syncError?button("重试连接","sync-connect",{glyph:"refresh"}):"");
   }
   const row = entry => `<article class="task-row">${subjectGlyph(entry.subject??"英语")}<div class="task-body">
-    <b>${entry.kind==="vocab"?"单词复习":esc(entry.title)}</b><small>${entry.minutes} 分钟</small></div></article>`;
+    <b>${entry.kind==="vocab"?"单词复习":esc(entry.title)}</b><small>${entry.minutes} 分钟 · ${esc(time(entry.revision))}</small>${entry.notes?`<p>${esc(entry.notes)}</p>`:""}</div></article>`;
   const days = `<label class="field"><span>按日期查看云端记录（北京时间）</span><input type="date" id="sync-date" min="${firstDay}" value="${esc(syncDate)}"></label>`;
   const status = syncError ? `<p class="hint" role="status">${esc(syncError)}</p>`
-    : syncRole==="student" ? `<p class="hint" role="status">${(model.syncPending??[]).length?"待同步":"已同步"} · 任务完成与单词打卡</p>` : "";
+    : syncRole==="student" ? `<p class="hint" role="status">${(model.syncPending??[]).length?"待同步":"已同步"} · 任务完成、用时、提交说明与单词打卡</p>` : "";
   const entries = syncRecords?.length ? `<div class="task-list">${syncRecords.map(row).join("")}</div>`
     : `<p class="hint">${syncRecords?"当天暂无已同步的完成记录。":syncError?"":"正在读取云端记录…"}</p>`;
-  const importButton = syncRole==="student" && cloudConfig.allowImport && !(model.syncHistoryImported)
-    ? button("同步本机历史","sync-import",{glyph:"refresh"}) : "";
-  return panel("家庭进度同步",days+status+entries,`<div class="actions">${importButton}${button("刷新云端进度","sync-refresh",{glyph:"refresh"})}</div>`);
+  return panel("家庭进度同步",days+status+entries,`<div class="actions">${button("刷新云端进度","sync-refresh",{glyph:"refresh"})}</div>`);
+}
+
+// Brings completions made on other devices into this browser, and queues ones the cloud is missing.
+async function pullCloud() {
+  if (syncRole!=="student") return;
+  try {
+    const {entries}=await syncClient.all();
+    await withState(state=>{mergeCloud(state,entries);});
+  } catch {}
 }
 
 async function refreshSync() {
   syncError=undefined;
   const date=syncDate;
   try {
-    if (syncRole==="student") await syncClient.flush();
+    if (syncRole==="student") { await pullCloud(); await syncClient.flush(); }
     const {entries}=await syncClient.day(date);
     if (syncDate===date) syncRecords=entries;
   } catch {
@@ -1204,20 +1211,6 @@ async function handle(action,id) {
     case "share": share();break;
     case "sync-connect": await connectSync();break;
     case "sync-refresh": await refreshSync();break;
-    case "sync-import":
-      if (syncRole==="student" && cloudConfig.allowImport) {
-        openModal("同步本机历史", "<p>把这个浏览器里的已完成任务及单词打卡上传，家长可以按日查看。</p>", {
-          saveLabel:"同步历史",
-          onSubmit:async ()=>{
-            await withState(state=>{
-              for (const task of state.tasks.filter(actual)) enqueueCompletion(state,completionEvent("task",task));
-              for (const checkIn of state.vocabulary) enqueueCompletion(state,completionEvent("vocab",checkIn));
-              state.syncHistoryImported=true;
-            });
-          },
-        });
-      }
-      break;
     case "copy-today": await copyTodayCompletion();break;
     case "copy-link": {
       const input=document.querySelector("#share-link");
@@ -1273,6 +1266,12 @@ async function boot() {
 }
 addEventListener("online",()=>{
   if (syncRole==="student") refreshSync().catch(error=>toast(error.message,true));
+});
+let lastVisibleSync=Date.now();
+document.addEventListener("visibilitychange",()=>{
+  if (document.visibilityState!=="visible" || !syncRole || dialog?.open || Date.now()-lastVisibleSync<30000) return;
+  lastVisibleSync=Date.now();
+  refreshSync().catch(error=>toast(error.message,true));
 });
 boot();
 

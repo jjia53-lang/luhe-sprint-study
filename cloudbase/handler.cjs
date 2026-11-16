@@ -26,7 +26,9 @@ function completion(value) {
   if (value.kind !== "task" || typeof value.itemId !== "string" || !/^[a-zA-Z0-9-]{1,100}$/.test(value.itemId)
       || typeof value.title !== "string" || !value.title.trim() || value.title.length > 140
       || !["数学","英语","其他"].includes(value.subject)) return null;
-  return { date, minutes, revision, kind:"task", itemId:value.itemId, title:value.title.trim(), subject:value.subject };
+  if (value.notes !== undefined && (typeof value.notes !== "string" || value.notes.length > 1000)) return null;
+  const notes = typeof value.notes === "string" ? value.notes.trim() : "";
+  return { date, minutes, revision, kind:"task", itemId:value.itemId, title:value.title.trim(), subject:value.subject, ...(notes ? {notes} : {}) };
 }
 
 function createHandler(store, secrets) {
@@ -54,6 +56,16 @@ function createHandler(store, secrets) {
         const latest = new Map();
         for (const entry of entries) {
           const key = entry.kind + ":" + entry.itemId;
+          if (!latest.has(key) || latest.get(key).revision <= entry.revision) latest.set(key, entry);
+        }
+        return { ok:true, entries:[...latest.values()] };
+      }
+      case "all": {
+        // Latest completion per task, and per day for word practice, across the whole sprint.
+        const entries = await store.all(scope);
+        const latest = new Map();
+        for (const entry of entries) {
+          const key = entry.kind === "vocab" ? "vocab:" + entry.date : "task:" + entry.itemId;
           if (!latest.has(key) || latest.get(key).revision <= entry.revision) latest.set(key, entry);
         }
         return { ok:true, entries:[...latest.values()] };
