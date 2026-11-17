@@ -163,8 +163,8 @@ export function mergeRecords(state, cloudRows) {
   for (const [key, row] of localRecords(state)) {
     const seen = cloud.get(key);
     if (seen && seen.rev >= row.rev) continue;
-    // Parent feedback is written only through the parent link, so a student device never uploads it.
-    if (row.type === "review" || !validRecord(row)) continue;
+    // A student device uploads only feedback written in its own parent preview; parent-link feedback already lives in the cloud.
+    if ((row.type === "review" && row.data?.author !== "家长（本机）") || !validRecord(row)) continue;
     if (row.needsUpload) { uploads.push(row.id); continue; }
     push.push({type:row.type, id:row.id, rev:row.rev, deleted:row.deleted, data:row.data});
   }

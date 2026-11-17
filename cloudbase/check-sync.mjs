@@ -174,15 +174,19 @@ assert.equal(recordBatches(Array.from({length:25},(_,i)=>({type:"log",id:"l"+i,r
 const reviewAt=new Date().toISOString();
 const review={type:"review",id:"review-1",rev:reviewAt,deleted:false,data:{taskId:"daily-2026-11-17-0",rating:"已确认",comment:"证明过程清楚",author:"假冒",createdAt:reviewAt}};
 assert.equal((await receive({action:"records.save",token:parent,records:[review]})).ok,true);
-assert.equal((await receive({action:"records.save",token:student,records:[{...review,id:"review-2"}]})).ok,false);
+assert.equal((await receive({action:"records.save",token:student,records:[{...review,id:"review-2"}]})).ok,true);
+assert.equal((await studentApi.records()).records.find(row=>row.id==="review-2").data.author,"家长（本机）");
 assert.equal((await receive({action:"records.save",token:parent,records:[review,stale]})).ok,false);
 assert.equal((await receive({action:"records.save",token:parent,records:[{...review,id:"review-3",data:{...review.data,createdAt:baseRevision}}]})).ok,false);
 assert.equal((await receive({action:"records.save",token:parent,records:[{...review,id:"review-4",data:{...review.data,rating:"随便"}}]})).ok,false);
 deviceA.reviews=[{id:"local-review",taskId:null,rating:"留言",comment:"本机留言",author:"家长（本机）",createdAt:"2026-11-17T01:00:00.000Z"}];
 const withReview=await syncDevice(deviceA,new Map());
-assert.equal(withReview.push.some(row=>row.type==="review"),false);
-assert.deepEqual(deviceA.reviews.map(item=>[item.id,item.author]).sort(),[["local-review","家长（本机）"],["review-1","家长"]]);
-assert.equal((await studentApi.records()).records.filter(row=>row.type==="review").length,1);
+assert.deepEqual(withReview.push.filter(row=>row.type==="review").map(row=>row.id),["local-review"]);
+assert.deepEqual(deviceA.reviews.map(item=>[item.id,item.author]).sort(),[["local-review","家长（本机）"],["review-1","家长"],["review-2","家长（本机）"]]);
+const otherBrowser={reviews:[]};
+mergeRecords(otherBrowser,(await studentApi.records()).records);
+assert.deepEqual(otherBrowser.reviews.map(item=>item.comment).sort(),["本机留言","证明过程清楚"].concat(["证明过程清楚"]).sort());
+assert.equal(mergeRecords(deviceA,(await studentApi.records()).records).push.some(row=>row.type==="review"),false);
 
 // Synthetic test links never see family records or files.
 assert.equal((await receive({action:"records",token:testStudent})).records.length,0);
