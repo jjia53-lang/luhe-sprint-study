@@ -4,7 +4,8 @@ const noteLimit = 1000;
 
 export function completionEvent(kind, item) {
   if (kind === "vocab") {
-    return { kind, itemId:"words", date:item.date, minutes:item.minutes, revision:item.completedAt };
+    const notes = typeof item.notes === "string" ? item.notes.trim().slice(0, 500) : "";
+    return { kind, itemId:"words", date:item.date, minutes:item.minutes, revision:item.completedAt, ...(notes ? {notes} : {}) };
   }
   const notes = typeof item.notes === "string" ? item.notes.trim().slice(0, noteLimit) : "";
   return {
@@ -58,9 +59,10 @@ export function mergeCloud(state, entries) {
       }
     } else if (entry.kind === "vocab") {
       const index = state.vocabulary.findIndex(item => item.date === entry.date);
-      if (index < 0) { state.vocabulary.unshift({date:entry.date, minutes:entry.minutes, completedAt:entry.revision}); changed++; }
+      const notes = entry.notes ?? "";
+      if (index < 0) { state.vocabulary.unshift({date:entry.date, minutes:entry.minutes, completedAt:entry.revision, notes}); changed++; }
       else if ((state.vocabulary[index].completedAt ?? "") < entry.revision) {
-        state.vocabulary[index] = {...state.vocabulary[index], minutes:entry.minutes, completedAt:entry.revision};
+        state.vocabulary[index] = {...state.vocabulary[index], minutes:entry.minutes, completedAt:entry.revision, notes};
         changed++;
       }
     }
@@ -77,6 +79,119 @@ export function mergeCloud(state, entries) {
   }
   if (state.syncPending) state.syncPending = state.syncPending.filter(uploadable);
   return changed;
+}
+
+// ---- Study records: logs, mistakes, words, edited tasks, exam settings and attachment details ----
+// Each record carries its own revision (updatedAt). Deletions leave a tombstone in state.removed,
+// so a record deleted on one device is also removed on the others instead of coming back.
+export const baseRevision = "2026-11-16T00:00:00.000Z";
+export const chunkSize = 600000;
+const planFields = ["date","subject","title","minutes","detail"];
+const settingFields = ["examDate","monthlyDate","examConfirmed"];
+const pick = (value, fields) => Object.fromEntries(fields.filter(key => value[key] !== undefined).map(key => [key, value[key]]));
+const without = (value, fields) => Object.fromEntries(Object.entries(value).filter(([key]) => !fields.includes(key)));
+const stamp = () => new Date().toISOString();
+export const recordKey = (type, id) => type + ":" + id;
+export const chunkCount = size => Math.max(1, Math.ceil(size / chunkSize));
+
+export function touch(row) { row.updatedAt = stamp(); return row; }
+export function forget(state, type, id) { (state.removed ??= {})[recordKey(type, id)] = stamp(); }
+export function revive(state, type, id) { if (state.removed) delete state.removed[recordKey(type, id)]; }
+
+export function localRecords(state) {
+  const rows = new Map();
+  const add = (type, id, rev, data, extra = {}) => rows.set(recordKey(type, id), {type, id, rev:rev ?? baseRevision, deleted:false, data, ...extra});
+  for (const log of state.logs ?? []) add("log", log.id, log.updatedAt, without(log, ["id","updatedAt"]));
+  for (const item of state.mistakes ?? []) add("mistake", item.id, item.updatedAt, without(item, ["id","updatedAt"]));
+  for (const word of state.words ?? []) add("word", word.key, word.updatedAt, without(word, ["updatedAt"]));
+  for (const task of state.tasks ?? []) if (task.updatedAt) add("task", task.id, task.updatedAt, pick(task, planFields));
+  if (state.settingsUpdatedAt) add("settings", "exam", state.settingsUpdatedAt, pick(state, settingFields));
+  for (const file of state.attachments ?? []) {
+    add("attachment", file.id, file.updatedAt, pick(file, ["taskId","name","size","type"]), {needsUpload:!file.uploaded && !file.remote});
+  }
+  for (const [key, rev] of Object.entries(state.removed ?? {})) {
+    const at = key.indexOf(":");
+    const live = rows.get(key);
+    if (!live || live.rev < rev) rows.set(key, {type:key.slice(0, at), id:key.slice(at + 1), rev, deleted:true, data:null});
+  }
+  return rows;
+}
+
+function applyRecord(state, row) {
+  const key = recordKey(row.type, row.id);
+  const list = {log:"logs", mistake:"mistakes", word:"words", attachment:"attachments"}[row.type];
+  const idField = row.type === "word" ? "key" : "id";
+  if (row.deleted) {
+    (state.removed ??= {})[key] = row.rev;
+    if (list) state[list] = (state[list] ?? []).filter(item => item[idField] !== row.id);
+    if (row.type === "task") state.tasks = (state.tasks ?? []).filter(task => task.id !== row.id || task.status === "submitted");
+    return;
+  }
+  if (state.removed) delete state.removed[key];
+  if (row.type === "settings") { Object.assign(state, pick(row.data, settingFields)); state.settingsUpdatedAt = row.rev; return; }
+  if (row.type === "task") {
+    const task = (state.tasks ??= []).find(item => item.id === row.id);
+    if (task) Object.assign(task, pick(row.data, planFields), {updatedAt:row.rev});
+    else state.tasks.push({...pick(row.data, planFields), id:row.id, status:"planned", updatedAt:row.rev});
+    return;
+  }
+  const rows = state[list] ??= [];
+  const index = rows.findIndex(item => item[idField] === row.id);
+  const next = {...row.data, [idField]:row.id, updatedAt:row.rev};
+  if (row.type === "attachment") {
+    const local = rows[index];
+    Object.assign(next, {uploaded:true, remote:!local || local.remote === true});
+  }
+  if (index < 0) rows.push(next); else rows[index] = next;
+}
+
+// Applies newer cloud records and returns the local ones the cloud is missing or has older copies of.
+export function mergeRecords(state, cloudRows) {
+  const cloud = new Map();
+  for (const row of cloudRows) {
+    const key = recordKey(row.type, row.id);
+    if (!cloud.has(key) || cloud.get(key).rev <= row.rev) cloud.set(key, row);
+  }
+  const local = localRecords(state);
+  let changed = 0;
+  for (const [key, row] of cloud) {
+    const mine = local.get(key);
+    if (!mine || mine.rev < row.rev) { applyRecord(state, row); changed++; }
+  }
+  const push = [], uploads = [];
+  for (const [key, row] of localRecords(state)) {
+    const seen = cloud.get(key);
+    if (seen && seen.rev >= row.rev) continue;
+    if (!validRecord(row)) continue;
+    if (row.needsUpload) { uploads.push(row.id); continue; }
+    push.push({type:row.type, id:row.id, rev:row.rev, deleted:row.deleted, data:row.data});
+  }
+  return {changed, push, uploads};
+}
+
+// Mirrors the cloud function's record checks so a single oversized record stays local instead of blocking the rest.
+export function validRecord(row) {
+  const idOk = row.type === "word" ? typeof row.id === "string" && row.id.length >= 1 && row.id.length <= 200
+    : row.type === "settings" ? row.id === "exam" : typeof row.id === "string" && /^[a-zA-Z0-9-]{1,100}$/.test(row.id);
+  if (!idOk || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(row.rev)) return false;
+  if (row.deleted) return true;
+  if (!row.data || JSON.stringify(row.data).length > 20000) return false;
+  if (row.type !== "attachment") return true;
+  const {taskId, name, size, type} = row.data;
+  return /^[a-zA-Z0-9-]{1,100}$/.test(taskId ?? "") && typeof name === "string" && !!name && name.length <= 200
+    && Number.isInteger(size) && size >= 1 && size <= 8 * 1024 * 1024 && typeof type === "string" && type.length <= 100;
+}
+
+export function recordBatches(rows, limit = 100000) {
+  const batches = [];
+  let batch = [], size = 0;
+  for (const row of rows) {
+    const length = JSON.stringify(row).length;
+    if (batch.length && (batch.length >= 10 || size + length > limit)) { batches.push(batch); batch = []; size = 0; }
+    batch.push(row); size += length;
+  }
+  if (batch.length) batches.push(batch);
+  return batches;
 }
 
 export function linkToken(location, history, storage, legacy) {
@@ -118,6 +233,10 @@ export function createSync(request, token, withState) {
     connect:() => call("connect"),
     day:date => call("day", {date}),
     all:() => call("all"),
+    records:() => call("records"),
+    saveRecords:records => call("records.save", {records}),
+    putChunk:(file, index, total, data) => call("file.put", {file, index, total, data}),
+    getChunk:(file, index) => call("file.get", {file, index}),
     flush() {
       if (!running) running = upload().finally(() => { running = undefined; });
       return running;

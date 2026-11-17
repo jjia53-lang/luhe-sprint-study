@@ -1,17 +1,24 @@
 import assert from "node:assert/strict";
 import {createHash,randomBytes} from "node:crypto";
-import {createSync,enqueueCompletion,completionEvent,mergeCloud,linkToken} from "../cloud-sync.mjs";
+import {createSync,enqueueCompletion,completionEvent,mergeCloud,mergeRecords,recordBatches,touch,forget,chunkSize,chunkCount,baseRevision,linkToken} from "../cloud-sync.mjs";
 import handler from "./handler.cjs";
+import http from "./http.cjs";
 
 const student=randomBytes(32).toString("hex");
 const parent=randomBytes(32).toString("hex");
 const hashed=token=>createHash("sha256").update(token).digest("hex");
-const documents=new Map();
+const testStudent=randomBytes(32).toString("hex");
+const documents=new Map(), recordDocs=new Map(), chunks=new Map();
 const receive=handler.createHandler({
   put(id, entry) { documents.set(id, entry); },
   day(date) { return [...documents.values()].filter(entry=>entry.date===date); },
   all() { return [...documents.values()]; },
-},{student:hashed(student),parent:hashed(parent)});
+  records(scope) { return [...recordDocs.values()].filter(row=>row.rscope===scope).map(({rscope,...row})=>row); },
+  getRecord(id) { return recordDocs.get(id) ?? null; },
+  putRecord(id, record, scope) { recordDocs.set(id, structuredClone({...record,rscope:scope})); },
+  putChunk(id, scope, file, index, content) { chunks.set(id, {fscope:scope, content}); },
+  getChunk(id, scope) { const chunk=chunks.get(id); return chunk?.fscope===scope ? chunk.content : null; },
+},{student:hashed(student),parent:hashed(parent),"test-student":hashed(testStudent)});
 
 const sent={syncPending:[]};
 const withState=async change=>{change?.(sent);return structuredClone(sent);};
@@ -40,7 +47,7 @@ fail=false;
 await uploader.flush();
 assert.equal(sent.syncPending.length,0);
 assert.equal(taskEvent.notes,"本机笔记");
-assert.equal(wordEvent.notes,undefined);
+assert.equal(wordEvent.notes,"本机笔记");
 assert.deepEqual((await viewer.day(task.date)).entries,[taskEvent,wordEvent]);
 assert.deepEqual((await viewer.day("2026-11-17")).entries,[]);
 assert.equal((await receive({action:"day",token:parent,date:"2026-11-31"})).ok,false);
@@ -82,6 +89,101 @@ assert.equal(fresh.tasks.find(item=>item.id==="daily-2026-11-18-0").notes,"离�
 assert.equal(fresh.tasks.some(item=>item.id==="old"),false);
 assert.equal((await receive({action:"all",token:"0".repeat(64)})).ok,false);
 
+// ---- Study records and attachments across two student devices and the parent ----
+const studentApi=createSync(receive,student,async()=>({}));
+async function syncDevice(state, blobs) {
+  const {records}=await studentApi.records();
+  let plan=mergeRecords(state,records);
+  const uploaded=plan.uploads;
+  for (const id of uploaded) {
+    const blob=blobs.get(id), total=chunkCount(blob.length);
+    for (let index=0;index<total;index++) {
+      await studentApi.putChunk(id,index,total,blob.subarray(index*chunkSize,(index+1)*chunkSize).toString("base64"));
+    }
+    state.attachments.find(file=>file.id===id).uploaded=true;
+  }
+  plan=mergeRecords(state,records);
+  for (const batch of recordBatches(plan.push)) assert.equal((await studentApi.saveRecords(batch)).count,batch.length);
+  return {...plan,uploaded};
+}
+const photo=randomBytes(2*chunkSize+1234);
+assert.equal(chunkSize,600000);
+const deviceA={tasks:[{id:"daily-2026-11-19-0",date:"2026-11-19",subject:"数学",title:"几何",minutes:30,status:"planned"}],
+  logs:[{id:"log-1",date:"2026-11-17",subject:"数学",minutes:30,content:"老日志"}],
+  mistakes:[touch({id:"mistake-1",date:"2026-11-17",subject:"数学",title:"面积",cause:"辅助线",correction:"作高",mastered:false})],
+  words:[{key:"lend",word:"lend",firstSeen:"2026-11-17",lastSeen:"2026-11-17",attempts:0,note:"借出",known:0}],
+  attachments:[{id:"file-1",taskId:"daily-2026-11-17-0",name:"证明.jpg",size:photo.length,type:"image/jpeg",updatedAt:"2026-11-17T08:00:00.000Z",uploaded:false}],
+  examDate:"2026-12-31",monthlyDate:null,examConfirmed:false};
+Object.assign(deviceA.tasks[0],touch({title:"几何（改为周四）",minutes:40}));
+deviceA.examConfirmed=true; deviceA.settingsUpdatedAt=new Date().toISOString();
+const first=await syncDevice(deviceA,new Map([["file-1",photo]]));
+assert.deepEqual(first.uploaded,["file-1"]);
+assert.equal(chunks.size,3);
+assert.equal(recordDocs.size,6);
+
+const deviceB={tasks:[{id:"daily-2026-11-19-0",date:"2026-11-19",subject:"数学",title:"几何",minutes:30,status:"planned"}],
+  logs:[],mistakes:[],words:[],attachments:[],examDate:"2026-12-31",examConfirmed:false};
+await syncDevice(deviceB,new Map());
+assert.equal(deviceB.logs[0].content,"老日志");
+assert.equal(deviceB.mistakes[0].cause,"辅助线");
+assert.equal(deviceB.words[0].note,"借出");
+assert.equal(deviceB.tasks[0].title,"几何（改为周四）");
+assert.equal(deviceB.tasks[0].status,"planned");
+assert.equal(deviceB.examConfirmed,true);
+assert.deepEqual(deviceB.attachments[0],{...deviceB.attachments[0],name:"证明.jpg",remote:true,uploaded:true});
+const pieces=[];
+for (let index=0;index<chunkCount(photo.length);index++) pieces.push(Buffer.from((await studentApi.getChunk("file-1",index)).data,"base64"));
+assert.ok(Buffer.concat(pieces).equals(photo));
+
+// Edits and deletions on B reach A; tombstones stop deleted records from coming back.
+await new Promise(resolve=>setTimeout(resolve,5));
+Object.assign(deviceB.logs[0],touch({content:"在另一台电脑补充"}));
+deviceB.mistakes=[];forget(deviceB,"mistake","mistake-1");
+deviceB.words[0].known=1;touch(deviceB.words[0]);
+await syncDevice(deviceB,new Map());
+await syncDevice(deviceA,new Map());
+assert.equal(deviceA.logs[0].content,"在另一台电脑补充");
+assert.equal(deviceA.mistakes.length,0);
+assert.ok(deviceA.removed["mistake:mistake-1"]);
+assert.equal(deviceA.words[0].known,1);
+assert.notEqual(deviceA.attachments[0].remote,true);
+await syncDevice(deviceA,new Map());
+assert.equal(deviceA.mistakes.length,0);
+
+// A late, older copy never overwrites a newer edit, and bad records are refused without partial writes.
+const stale={type:"log",id:"log-1",rev:"2026-11-16T09:00:00.000Z",deleted:false,data:{content:"过期内容"}};
+assert.equal((await studentApi.saveRecords([stale])).count,1);
+assert.equal((await studentApi.records()).records.find(row=>row.id==="log-1").data.content,"在另一台电脑补充");
+assert.equal((await receive({action:"records.save",token:student,records:[{...stale,id:"bad id"}]})).ok,false);
+assert.equal((await receive({action:"records.save",token:student,records:[{...stale,id:"big",data:{content:"长".repeat(20001)}}]})).ok,false);
+const huge={logs:[{id:"log-big",content:"长".repeat(20001),updatedAt:new Date().toISOString()}]};
+assert.equal(mergeRecords(huge,[]).push.length,0);
+
+// Parent: reads records and attachments, cannot write either.
+assert.equal((await receive({action:"records",token:parent})).records.length,6);
+assert.equal((await receive({action:"records.save",token:parent,records:[stale]})).ok,false);
+assert.equal((await receive({action:"file.put",token:parent,file:"file-2",index:0,total:1,data:"AAAA"})).ok,false);
+assert.equal((await receive({action:"file.get",token:parent,file:"file-1",index:0})).ok,true);
+assert.equal((await receive({action:"file.put",token:student,file:"file-2",index:2,total:2,data:"AAAA"})).ok,false);
+assert.equal((await receive({action:"file.get",token:student,file:"file-1",index:5})).ok,false);
+assert.equal((await receive({action:"file.get",token:student,file:"file-1",index:14})).ok,false);
+assert.equal((await receive({action:"file.put",token:student,file:"file-2",index:0,total:1,data:"A".repeat(800004)})).ok,false);
+assert.equal(recordBatches(Array.from({length:25},(_,i)=>({type:"log",id:"l"+i,rev:baseRevision,deleted:true,data:null}))).map(batch=>batch.length).join(),"10,10,5");
+
+// Synthetic test links never see family records or files.
+assert.equal((await receive({action:"records",token:testStudent})).records.length,0);
+assert.equal((await receive({action:"file.get",token:testStudent,file:"file-1",index:0})).ok,false);
+
+// HTTP wrapper: binary (base64) bodies carry attachment chunks; size is checked after decoding.
+const viaHttp=http.httpHandler(receive);
+const encoded=body=>({httpMethod:"POST",headers:{origin:"https://jjia53-lang.github.io"},isBase64Encoded:true,body:Buffer.from(body).toString("base64")});
+const chunkCall=JSON.stringify({action:"file.put",token:student,file:"file-3",index:0,total:1,data:randomBytes(chunkSize).toString("base64")});
+const accepted=await viaHttp(encoded(chunkCall));
+assert.equal(accepted.statusCode,200);
+assert.equal(accepted.headers["Access-Control-Allow-Origin"],"https://jjia53-lang.github.io");
+assert.equal((await viaHttp(encoded(JSON.stringify({action:"connect",token:student,pad:"x".repeat(900000)})))).statusCode,400);
+assert.equal((await viaHttp({httpMethod:"POST",headers:{},body:JSON.stringify({action:"connect",token:parent})})).headers["Access-Control-Allow-Origin"],undefined);
+
 const browserStorage=new Map();
 const storage={setItem:(key,value)=>browserStorage.set(key,value),getItem:key=>browserStorage.get(key),removeItem:key=>browserStorage.delete(key)};
 const loc={pathname:"/luhe-sprint-study/",search:"",hash:"#sync="+parent};
@@ -94,4 +196,4 @@ const wrap=map=>({setItem:(key,value)=>map.set(key,value),getItem:key=>map.get(k
 assert.equal(linkToken({...loc,hash:""},{replaceState(){}},wrap(remembered),wrap(tabOnly)),student);
 assert.equal(remembered.get("sprint-sync-token"),student);
 assert.equal(tabOnly.size,0);
-console.log("Private roles, day and full history, notes, cross-device merge, offline backfill, retry-safe writes, revision order, local queue, and remembered links passed.");
+console.log("Private roles, day and full history, notes, cross-device merge, offline backfill, study records, deletions, attachments, parent read-only, test isolation, retry-safe writes, revision order, local queue, and remembered links passed.");

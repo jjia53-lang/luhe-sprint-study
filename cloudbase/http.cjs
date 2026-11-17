@@ -22,10 +22,13 @@ function httpHandler(handle) {
     });
     if (method === "OPTIONS") return reply(allowed ? 204 : 403);
     if (method !== "POST") return reply(405, {ok:false,error:"不支持此操作。"});
-    if (typeof event.body !== "string" || event.body.length > 32000) return reply(400, {ok:false,error:"提交的数据格式不正确。"});
+    // The page sends JSON as application/octet-stream: the gateway caps text bodies at 100 KB but binary ones at 6 MB.
+    // Binary bodies arrive base64-encoded, so the size check applies after decoding.
+    if (typeof event.body !== "string" || event.body.length > 1300000) return reply(400, {ok:false,error:"提交的数据格式不正确。"});
     let payload;
     try {
       const body = event.isBase64Encoded ? Buffer.from(event.body,"base64").toString("utf8") : event.body;
+      if (body.length > 900000) return reply(400, {ok:false,error:"提交的数据格式不正确。"});
       payload = JSON.parse(body);
     } catch {
       return reply(400, {ok:false,error:"提交的数据格式不正确。"});
