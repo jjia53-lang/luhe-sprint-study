@@ -170,6 +170,20 @@ assert.equal((await receive({action:"file.get",token:student,file:"file-1",index
 assert.equal((await receive({action:"file.put",token:student,file:"file-2",index:0,total:1,data:"A".repeat(800004)})).ok,false);
 assert.equal(recordBatches(Array.from({length:25},(_,i)=>({type:"log",id:"l"+i,rev:baseRevision,deleted:true,data:null}))).map(batch=>batch.length).join(),"10,10,5");
 
+// Parent feedback: only the parent link writes it, students receive it, and old local-only feedback stays put.
+const reviewAt=new Date().toISOString();
+const review={type:"review",id:"review-1",rev:reviewAt,deleted:false,data:{taskId:"daily-2026-11-17-0",rating:"已确认",comment:"证明过程清楚",author:"假冒",createdAt:reviewAt}};
+assert.equal((await receive({action:"records.save",token:parent,records:[review]})).ok,true);
+assert.equal((await receive({action:"records.save",token:student,records:[{...review,id:"review-2"}]})).ok,false);
+assert.equal((await receive({action:"records.save",token:parent,records:[review,stale]})).ok,false);
+assert.equal((await receive({action:"records.save",token:parent,records:[{...review,id:"review-3",data:{...review.data,createdAt:baseRevision}}]})).ok,false);
+assert.equal((await receive({action:"records.save",token:parent,records:[{...review,id:"review-4",data:{...review.data,rating:"随便"}}]})).ok,false);
+deviceA.reviews=[{id:"local-review",taskId:null,rating:"留言",comment:"本机留言",author:"家长（本机）",createdAt:"2026-11-17T01:00:00.000Z"}];
+const withReview=await syncDevice(deviceA,new Map());
+assert.equal(withReview.push.some(row=>row.type==="review"),false);
+assert.deepEqual(deviceA.reviews.map(item=>[item.id,item.author]).sort(),[["local-review","家长（本机）"],["review-1","家长"]]);
+assert.equal((await studentApi.records()).records.filter(row=>row.type==="review").length,1);
+
 // Synthetic test links never see family records or files.
 assert.equal((await receive({action:"records",token:testStudent})).records.length,0);
 assert.equal((await receive({action:"file.get",token:testStudent,file:"file-1",index:0})).ok,false);
@@ -196,4 +210,4 @@ const wrap=map=>({setItem:(key,value)=>map.set(key,value),getItem:key=>map.get(k
 assert.equal(linkToken({...loc,hash:""},{replaceState(){}},wrap(remembered),wrap(tabOnly)),student);
 assert.equal(remembered.get("sprint-sync-token"),student);
 assert.equal(tabOnly.size,0);
-console.log("Private roles, day and full history, notes, cross-device merge, offline backfill, study records, deletions, attachments, parent read-only, test isolation, retry-safe writes, revision order, local queue, and remembered links passed.");
+console.log("Private roles, day and full history, notes, cross-device merge, offline backfill, study records, deletions, attachments, parent read-only with feedback, test isolation, retry-safe writes, revision order, local queue, and remembered links passed.");

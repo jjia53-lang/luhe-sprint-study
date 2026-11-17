@@ -40,12 +40,18 @@ const isObject = value => !!value && typeof value === "object" && !Array.isArray
 
 // Study records keep the latest copy per record; data stays an opaque object owned by the page.
 function studyRecord(value) {
-  if (!isObject(value) || !["log","mistake","word","task","settings","attachment"].includes(value.type)) return null;
+  if (!isObject(value) || !["log","mistake","word","task","settings","attachment","review"].includes(value.type)) return null;
   const { type, id, rev, deleted } = value;
   if (typeof id !== "string" || !(type === "word" ? id.length >= 1 && id.length <= 200 : type === "settings" ? id === "exam" : idPattern.test(id))) return null;
   if (typeof rev !== "string" || !revisionPattern.test(rev) || !Number.isFinite(Date.parse(rev)) || typeof deleted !== "boolean") return null;
   if (deleted) return { type, id, rev, deleted, data:null };
   if (!isObject(value.data) || JSON.stringify(value.data).length > 20000) return null;
+  if (type === "review") {
+    const { taskId, rating, comment, createdAt } = value.data;
+    if ((taskId !== null && (typeof taskId !== "string" || !idPattern.test(taskId))) || !["已确认","建议补充","留言"].includes(rating)
+        || typeof comment !== "string" || !comment.trim() || comment.length > 3000 || createdAt !== rev) return null;
+    return { type, id, rev, deleted, data:{ taskId, rating, comment:comment.trim(), author:"家长", createdAt } };
+  }
   if (type === "attachment") {
     const { taskId, name, size, type:mime } = value.data;
     if (typeof taskId !== "string" || !idPattern.test(taskId) || typeof name !== "string" || !name || name.length > 200
@@ -97,9 +103,12 @@ function createHandler(store, secrets) {
       case "records":
         return { ok:true, records:await store.records(scope) };
       case "records.save": {
-        if (role !== "student") return { ok:false, error:"家长链接只有查看权限。" };
         const records = Array.isArray(event.records) && event.records.length <= 20 && event.records.map(studyRecord);
         if (!records?.length || records.includes(null)) return { ok:false, error:"提交的数据格式不正确。" };
+        // The parent link may only write feedback; feedback can only come from the parent link.
+        if (records.some(record => (record.type === "review") !== (role === "parent"))) {
+          return { ok:false, error:role === "parent" ? "家长链接只能写评价和留言。" : "评价只能由家长链接发布。" };
+        }
         const latest = new Map();
         for (const record of records) {
           const key = record.type + ":" + record.id;

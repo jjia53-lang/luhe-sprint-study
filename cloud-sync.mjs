@@ -106,6 +106,7 @@ export function localRecords(state) {
   for (const word of state.words ?? []) add("word", word.key, word.updatedAt, without(word, ["updatedAt"]));
   for (const task of state.tasks ?? []) if (task.updatedAt) add("task", task.id, task.updatedAt, pick(task, planFields));
   if (state.settingsUpdatedAt) add("settings", "exam", state.settingsUpdatedAt, pick(state, settingFields));
+  for (const review of state.reviews ?? []) add("review", review.id, review.updatedAt ?? review.createdAt, without(review, ["id"]));
   for (const file of state.attachments ?? []) {
     add("attachment", file.id, file.updatedAt, pick(file, ["taskId","name","size","type"]), {needsUpload:!file.uploaded && !file.remote});
   }
@@ -119,7 +120,7 @@ export function localRecords(state) {
 
 function applyRecord(state, row) {
   const key = recordKey(row.type, row.id);
-  const list = {log:"logs", mistake:"mistakes", word:"words", attachment:"attachments"}[row.type];
+  const list = {log:"logs", mistake:"mistakes", word:"words", attachment:"attachments", review:"reviews"}[row.type];
   const idField = row.type === "word" ? "key" : "id";
   if (row.deleted) {
     (state.removed ??= {})[key] = row.rev;
@@ -162,7 +163,8 @@ export function mergeRecords(state, cloudRows) {
   for (const [key, row] of localRecords(state)) {
     const seen = cloud.get(key);
     if (seen && seen.rev >= row.rev) continue;
-    if (!validRecord(row)) continue;
+    // Parent feedback is written only through the parent link, so a student device never uploads it.
+    if (row.type === "review" || !validRecord(row)) continue;
     if (row.needsUpload) { uploads.push(row.id); continue; }
     push.push({type:row.type, id:row.id, rev:row.rev, deleted:row.deleted, data:row.data});
   }

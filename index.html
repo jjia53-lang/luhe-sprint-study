@@ -492,10 +492,11 @@ window.sprintOffline={
     state.tasks.sort((a,b)=>a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
     state.logs.sort((a,b)=>b.date.localeCompare(a.date));
     state.mistakes.sort((a,b)=>b.date.localeCompare(a.date));
+    state.reviews.sort((a,b)=>(b.createdAt??"").localeCompare(a.createdAt??""));
     return {...state,role:syncRole==="parent"?"parent":role,today:beijingToday()};
   },
   async write(payload) {
-    if (syncRole==="parent") throw new Error("家长链接只有查看权限。");
+    if (syncRole==="parent") return parentReview(payload);
     await withState((state,store)=>{
       if(payload instanceof FormData) {
         localSubmit(state,store,payload);
@@ -768,7 +769,7 @@ function dashboard() {
   const monthNote = model.monthlyDate ? ` · 月考 ${fmt(model.monthlyDate)}` : "";
   const recent = model.reviews[0];
   return `
-  ${heading(student() ? "学习总览" : "家长进度总览",`${fmt(model.today)} · ${weekday(model.today)}${monthNote}`,student() ? button("记学习日志","log-new",{glyph:"add"}) : syncRole==="parent" ? "" : button("给孩子留言","review-new",{glyph:"talk",variant:"primary"}),"潞河国际入学备考")}
+  ${heading(student() ? "学习总览" : "家长进度总览",`${fmt(model.today)} · ${weekday(model.today)}${monthNote}`,student() ? button("记学习日志","log-new",{glyph:"add"}) : button("给孩子留言","review-new",{glyph:"talk",variant:"primary"}),"潞河国际入学备考")}
   <section class="hero"><div class="hero-content">
     <div class="hero-date">${icon("calendar")} ${model.examConfirmed ? "考试日期" : "暂定考试日期"} · ${fmt(model.examDate)}</div>
     <h2>${days > 0 ? `<strong>${days}</strong><span>天倒计时</span>` : days === 0 ? "今天考试" : "冲刺已结束"}</h2>
@@ -783,7 +784,7 @@ function dashboard() {
   </div><div class="stack">
     ${focusPanel(model.today)}
     ${subjectProgress(withWords)}
-    ${syncRole==="parent" ? "" : panel("最新家长反馈",recent ? reviewItem(recent) : empty("talk","还没有家长评价"),button("查看","navigate",{value:"reviews",variant:"plain"}))}
+    ${panel("最新家长反馈",recent ? reviewItem(recent) : empty("talk","还没有家长评价"),button("查看","navigate",{value:"reviews",variant:"plain"}))}
   </div></div>`;
 }
 function plan() {
@@ -878,8 +879,8 @@ function syncPanel() {
     <b>${entry.kind==="vocab"?"单词复习":esc(entry.title)}</b><small>${entry.minutes} 分钟 · ${esc(time(entry.revision))}</small>${entry.notes?`<p>${esc(entry.notes)}</p>`:""}</div></article>`;
   const days = `<label class="field"><span>按日期查看云端记录（北京时间）</span><input type="date" id="sync-date" min="${firstDay}" value="${esc(syncDate)}"></label>`;
   const status = syncError ? `<p class="hint" role="status">${esc(syncError)}</p>`
-    : syncRole==="student" ? `<p class="hint" role="status">${syncBusy?"正在同步…":(model.syncPending??[]).length || model.attachments.some(file=>!file.uploaded && !file.remote)?"待同步":"已同步"} · 任务、日志、错题、单词与附件</p>`
-    : `<p class="hint" role="status">${syncBusy?"正在读取云端…":"只读 · 学习计划、日志、错题、单词与附件都可以查看"}</p>`;
+    : syncRole==="student" ? `<p class="hint" role="status">${syncBusy?"正在同步…":(model.syncPending??[]).length || model.attachments.some(file=>!file.uploaded && !file.remote)?"待同步":"已同步"} · 任务、日志、错题、单词、附件与家长反馈</p>`
+    : `<p class="hint" role="status">${syncBusy?"正在读取云端…":"可以查看计划、日志、错题、单词与附件，评价和留言会同步给学生"}</p>`;
   const entries = syncRecords?.length ? `<div class="task-list">${syncRecords.map(row).join("")}</div>`
     : `<p class="hint">${syncRecords?"当天暂无已同步的完成记录。":syncError?"":"正在读取云端记录…"}</p>`;
   return panel("家庭进度同步",days+status+entries,`<div class="actions">${button("刷新云端进度","sync-refresh",{glyph:"refresh"})}</div>`);
@@ -942,10 +943,23 @@ async function syncStudyRecords() {
   }
   for(const batch of recordBatches(plan.push)) await syncClient.saveRecords(batch);
 }
+// Parent feedback goes straight to the cloud; there is no local queue on the parent side.
+async function parentReview(payload) {
+  if (payload instanceof FormData || payload?.action!=="review") throw new Error("家长链接只能写评价和留言。");
+  const {data}=payload;
+  if (data.taskId && parentState?.tasks.find(task=>task.id===data.taskId)?.status!=="submitted") throw new Error("任务尚未提交。");
+  const createdAt=new Date().toISOString();
+  const review={taskId:data.taskId??null,rating:data.rating,comment:checkedText(data.comment),author:"家长",createdAt};
+  const id=crypto.randomUUID();
+  try { await syncClient.saveRecords([{type:"review",id,rev:createdAt,deleted:false,data:review}]); }
+  catch { throw new Error("暂时无法发布，请检查网络后重试。"); }
+  parentState.reviews.unshift({...review,id});
+}
 // The parent link never touches this browser's own records: it reads a fresh cloud copy into memory.
 async function pullParent() {
   const [{entries},{records}]=await Promise.all([syncClient.all(),syncClient.records()]);
   const state=defaultState();
+  state.reviews=[];
   mergeRecords(state,records);
   mergeCloud(state,entries);
   state.syncPending=[];
@@ -1009,15 +1023,15 @@ async function connectSync() {
 function render() {
   const label = sections[page][1];
   const view = {home:dashboard,plan,vocab:vocabView,logs:logsView,mistakes:mistakesView,reviews:reviewsView}[page]();
-  const launch = syncRole==="parent" ? chip("家长只读","good") : window.sprintOffline || model.siteKind==="family" ? button(student()?"切换家长视图":"返回学生视图",window.sprintOffline?"local-role":"family-role",{glyph:"people"}) : student() ? button("邀请家长","share",{glyph:"people"}) : chip("家长端","good");
+  const launch = syncRole==="parent" ? chip("家长链接","good") : syncRole==="student" ? "" : window.sprintOffline || model.siteKind==="family" ? button(student()?"切换家长视图":"返回学生视图",window.sprintOffline?"local-role":"family-role",{glyph:"people"}) : student() ? button("邀请家长","share",{glyph:"people"}) : chip("家长端","good");
   root.innerHTML = `<div class="shell"><aside class="sidebar">
   <div class="brand"><span class="brand-icon">${icon("rise")}</span><div>潞河冲刺站<small>入学备考工作台</small></div></div>
   <div class="nav-label">学习工作台</div><nav class="nav" aria-label="学习工作台">
-  ${Object.entries(syncRole==="parent"?Object.fromEntries(Object.entries(sections).filter(([key])=>key!=="reviews")):sections).map(([key,[glyph,text]])=>`<button type="button" data-do="navigate" data-value="${key}" ${key===page?'aria-current="page"':""}>${icon(glyph)}${text}</button>`).join("")}</nav>
+  ${Object.entries(sections).map(([key,[glyph,text]])=>`<button type="button" data-do="navigate" data-value="${key}" ${key===page?'aria-current="page"':""}>${icon(glyph)}${text}</button>`).join("")}</nav>
   <div class="sidebar-bottom">${student() ? `<button class="side-action" type="button" data-do="settings">${icon("settings")} 考试日期设置</button>` : ""}
   <div class="profile"><div class="avatar">${student()?"学":"家"}</div><div><b>${student()?"学生空间":"家长空间"}</b><span>${syncRole?"家庭云端同步":"本机学习进度"}</span></div></div></div></aside>
   <main class="main"><div class="topbar"><div class="crumb">工作台 ${icon("right")} <b>${label}</b></div><div class="top-actions">
-  ${button("","refresh",{glyph:"refresh",variant:"icon-only",label:"刷新进度"})}${student() ? button("","settings",{glyph:"settings",variant:"icon-only",label:"考试日期设置"}) : ""}${launch}${model.siteKind==="family" ? button("退出","logout",{variant:"plain"}) : ""}</div></div>${window.sprintOffline ? `<div class="local-banner">${icon("info")}<span>学习版 · ${syncRole==="parent"?"家长只读链接 · 内容来自学生同步到云端的记录。":syncRole==="student"?"任务、日志、错题、单词和附件会同步到家庭云端；家长反馈只保存在当前浏览器。":"记录和附件保存在当前浏览器。"} </span></div>` : ""}${page==="home"?syncPanel():""}${syncRole==="parent" && !parentState?"":view}</main></div>`;
+  ${button("","refresh",{glyph:"refresh",variant:"icon-only",label:"刷新进度"})}${student() ? button("","settings",{glyph:"settings",variant:"icon-only",label:"考试日期设置"}) : ""}${launch}${model.siteKind==="family" ? button("退出","logout",{variant:"plain"}) : ""}</div></div>${window.sprintOffline ? `<div class="local-banner">${icon("info")}<span>学习版 · ${syncRole==="parent"?"家长链接 · 可以查看学生同步的全部记录，评价和留言会同步给学生。":syncRole==="student"?"任务、日志、错题、单词、附件和家长反馈都会同步到家庭云端。":"记录和附件保存在当前浏览器。"} </span></div>` : ""}${page==="home"?syncPanel():""}${syncRole==="parent" && !parentState?"":view}</main></div>`;
 }
 function toast(message,error=false) {
   const node = document.createElement("div");
@@ -1067,7 +1081,7 @@ async function write(payload) {
 }
 async function reloadAfterSave() {
   try {
-    await read(); render(); toast(window.sprintOffline?"已保存在当前浏览器。":"已保存，网站进度已更新。");
+    await read(); render(); toast(syncRole==="parent"?"已发布，学生刷新后就能看到。":window.sprintOffline?"已保存在当前浏览器。":"已保存，网站进度已更新。");
     if (syncRole==="student") refreshSync().catch(()=>{});
   }
   catch { toast("已保存。刷新页面即可查看更新。"); }
@@ -1131,7 +1145,7 @@ function viewTask(item) {
     ${student() ? button("调整任务","task-edit",{glyph:"edit",value:item.id}) : ""}
     ${student() && actual(item) ? button("补交或更新提交","task-submit",{value:item.id}) : ""}
     ${student() && !actual(item) ? button("提交任务","task-submit",{variant:"primary",value:item.id}) + button("删除任务","task-remove",{variant:"plain danger",value:item.id}) : ""}
-    ${!student() && syncRole!=="parent" && actual(item) ? button("给出评价","review-new",{variant:"primary",glyph:"talk",value:item.id}) : ""}
+    ${!student() && actual(item) ? button("给出评价","review-new",{variant:"primary",glyph:"talk",value:item.id}) : ""}
     </div>`);
 }
 function submitTask(item) {
